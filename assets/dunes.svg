@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<defs><linearGradient id="s" x2="0" y2="1"><stop stop-color="#dbb4a9"/><stop offset="1" stop-color="#f5d7aa"/></linearGradient></defs>
+<path fill="url(#s)" d="M0 0h1024v1024H0z"/><circle cx="285" cy="265" r="107" fill="#fae6bc"/>
+<path fill="#b6837f" d="m0 567 221-147 210 116 208-165 385 169v484H0z"/>
+<path fill="#cf967d" d="M0 630q268-225 577-54t447-66v514H0z"/>
+<path fill="#e7b18a" d="M0 690q339 12 510-127 158 111 514 169v292H0z"/>
+<path fill="#b87566" d="M0 690q257 21 510-127-113 234-329 461H0z"/>
+<path fill="#f1c79b" d="M0 913q248-239 577-111t447 25v197H0z"/>
+<path fill="#d99877" d="M0 913q267-245 577-111-214 11-339 222H0z"/>
+<g fill="#596e64"><path d="M798 718V522h20v196z"/><path d="M805 606q-76 9-76-51v-29h18v26q0 35 58 33zm8 43q69 1 69-62v-27h-18v28q0 40-51 39z"/></g>
+<g stroke="#eed0aa" fill="none" stroke-width="3" opacity=".55"><path d="M335 926q192-90 416 9M382 955q164-75 350 8M94 761l162-39"/></g>
+</svg>

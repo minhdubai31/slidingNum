@@ -1,0 +1,353 @@
+[
+  {
+    "file": "assets/third_party/fontawesome/arrow-rotate-left.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/arrow-rotate-left.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "22d5c8c32a96bab6e9615d9d4fb29cb60a91a9ca7b702c59884770689e13a514"
+  },
+  {
+    "file": "assets/third_party/fontawesome/bolt.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/bolt.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "c23816fcca202a690a4b6fdcc4f807965b2697dafdd2d3b67e0696cff250b774"
+  },
+  {
+    "file": "assets/third_party/fontawesome/calendar-days.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/calendar-days.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "7977c71e0b6214af19e802f8cffefab138b1ee774dbe636811ab9b73c4be7f60"
+  },
+  {
+    "file": "assets/third_party/fontawesome/chart-simple.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/chart-simple.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "cd390bcb0f70fe64cd3db33ae7ea5a68ed1ec54fb4465e4b73e109a5a1e7b7c2"
+  },
+  {
+    "file": "assets/third_party/fontawesome/check.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/check.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "238257f08a1167f608209d7ef44fa3eaa59859811a2cedeab34cd9b63667e410"
+  },
+  {
+    "file": "assets/third_party/fontawesome/chevron-left.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/chevron-left.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "14f510f679e05abc31317c754c890ccac79e7780d9adb15f7cc9b0ed43a791ab"
+  },
+  {
+    "file": "assets/third_party/fontawesome/chevron-right.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/chevron-right.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "4fac1f4b7bead300d2bf49b8bf6f0984ac4fce3fe870116cd54637072a9376b7"
+  },
+  {
+    "file": "assets/third_party/fontawesome/circle-info.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/circle-info.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "76a4160cf2229bdb5e2a24cf9028a13425e87bb496d46ca5ace4a91b7531d1d0"
+  },
+  {
+    "file": "assets/third_party/fontawesome/circle-question.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/circle-question.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "f410a7c686468fe959f5ce92a69c35583486a1049e4f4515bd9f64bb55fe6f5f"
+  },
+  {
+    "file": "assets/third_party/fontawesome/eye.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/eye.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "21721fefe69725bb9152552e9da861b7810edd49f6019e4e9f6cf297d515d5e9"
+  },
+  {
+    "file": "assets/third_party/fontawesome/gear.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/gear.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "b9a38444d7af356e89bb9b2d11852847f969e8b9a45981ca0a1387477247ae81"
+  },
+  {
+    "file": "assets/third_party/fontawesome/house.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/house.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "a2f39593246f7bd7dfcecbe8cf4a0b93926756bbabdd6089b1326545d9389391"
+  },
+  {
+    "file": "assets/third_party/fontawesome/image.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/image.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "e7e5d63b9fa0b26f56dde7d3b1f6d918fbb2d3cfc93322aff57ed968f19700c4"
+  },
+  {
+    "file": "assets/third_party/fontawesome/leaf.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/leaf.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "4b6137e9ab6ecbdc5da505cc35c06cb7daacabb16e6be384f1e6f7edc1e5353e"
+  },
+  {
+    "file": "assets/third_party/fontawesome/lightbulb.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/lightbulb.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "623cc3c302f263c2b02fff3c05e12d5f3461d72b75a5ed2ab7e10ea29f6a4c39"
+  },
+  {
+    "file": "assets/third_party/fontawesome/lock.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/lock.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "c235ecb8a5bfed86989c97d9be37b9647cb3f3ae3218c2f8afcbcc4e13289218"
+  },
+  {
+    "file": "assets/third_party/fontawesome/mobile-screen-button.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/mobile-screen-button.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "f276933de58663b05b1d24007f51b0e068ad9ce478b2726c6c2934832fe6202c"
+  },
+  {
+    "file": "assets/third_party/fontawesome/music.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/music.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "0eecada89bfb642390282c2fb62b4dd5f9178dd15b71b8ec0ea6034a1f792037"
+  },
+  {
+    "file": "assets/third_party/fontawesome/palette.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/palette.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "d079dbbce8d282b2476acdccdb2106b8d6784edb51739e9767710cc1324a1e9f"
+  },
+  {
+    "file": "assets/third_party/fontawesome/pause.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/pause.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "4b15ab1213bb3101628d4ab50da5bf91d28b8ec202fb878eef131237db000bdf"
+  },
+  {
+    "file": "assets/third_party/fontawesome/play.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/play.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "2450714e90ceba7026b56f3a926a73b13772210cb9b4ec50b7f3baeacaa439c9"
+  },
+  {
+    "file": "assets/third_party/fontawesome/puzzle-piece.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/puzzle-piece.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "3c026c326ae03215bc936e3d0fb4e4f03d54f7de120dabc72e320e7756da98aa"
+  },
+  {
+    "file": "assets/third_party/fontawesome/rotate-left.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/rotate-left.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "272514051c88e8ff5bab6cad40915a306966cfe07a822a06c308478448c31fcb"
+  },
+  {
+    "file": "assets/third_party/fontawesome/shoe-prints.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/shoe-prints.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "8382d9becbd02b275383cef5e7016ee891f2cdb029bb685b86d94682c5fe0e08"
+  },
+  {
+    "file": "assets/third_party/fontawesome/shuffle.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/shuffle.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "1970cd190fed64429377c4663c9a764b7c06fba375fa555f775e928911c576de"
+  },
+  {
+    "file": "assets/third_party/fontawesome/star.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/star.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "a3793e8d54bebf5958d6a0539c75fc117d42e06cc197621ae67d32438a787627"
+  },
+  {
+    "file": "assets/third_party/fontawesome/stopwatch.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/stopwatch.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "424fb86bc01883873b96a0d0ceb07d7419b7015923ccc8851360437942964a1a"
+  },
+  {
+    "file": "assets/third_party/fontawesome/table-cells.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/table-cells.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "04b0bc225600b18d0ccdb04424ef0629946a2aa272b702c971e38c7851869d1b"
+  },
+  {
+    "file": "assets/third_party/fontawesome/toggle-off.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/toggle-off.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "8284f8f82d79400202b8ccde3585b8c65690544cdbc60cfc32403c1bd3ac4f21"
+  },
+  {
+    "file": "assets/third_party/fontawesome/toggle-on.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/toggle-on.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "cf0748a84135c1f1d15a9805ae456141d7682ab8fc91721cb03f066e9d57587f"
+  },
+  {
+    "file": "assets/third_party/fontawesome/trash-can.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/trash-can.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "7c444ba60f651ff33afaf6fad8d9b995cf3f921f8c67d99ca6033ae1711d02c6"
+  },
+  {
+    "file": "assets/third_party/fontawesome/trophy.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/trophy.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "6b231cb4460840c21b124800ccc0d8909685f34cbce44e5b7def519a1f086849"
+  },
+  {
+    "file": "assets/third_party/fontawesome/volume-high.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/volume-high.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "aedb54e5b7ed3e576b19c7cf89ee9af6d84b12467b0cdd5474c0e7b0ca2c1b84"
+  },
+  {
+    "file": "assets/third_party/fontawesome/xmark.svg",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.7.2/svgs/solid/xmark.svg",
+    "license": "CC-BY-4.0",
+    "sha256": "591fea2ae19d968cac870da11a403068f083a84bb909ee248e11353ed319ec8d"
+  },
+  {
+    "file": "assets/third_party/noto/1f3a8.svg",
+    "source": "https://raw.githubusercontent.com/googlefonts/noto-emoji/v2.047/svg/emoji_u1f3a8.svg",
+    "license": "See Noto README and bundled license notices",
+    "sha256": "89ae84aac36991e11404f638c55bbcd2a7efe0e0efbc3c4ca46e1e11e6ba8c62"
+  },
+  {
+    "file": "assets/third_party/noto/1f3c6.svg",
+    "source": "https://raw.githubusercontent.com/googlefonts/noto-emoji/v2.047/svg/emoji_u1f3c6.svg",
+    "license": "See Noto README and bundled license notices",
+    "sha256": "58ee1c738abfdd3559d68b953a6675a1c9d9296cde6d5248d90872d413209faf"
+  },
+  {
+    "file": "assets/third_party/noto/1f4a1.svg",
+    "source": "https://raw.githubusercontent.com/googlefonts/noto-emoji/v2.047/svg/emoji_u1f4a1.svg",
+    "license": "See Noto README and bundled license notices",
+    "sha256": "4c3d9c210c03271ebe63b9f86ab3e9a33d36483ed5920e116d7efed6c095def7"
+  },
+  {
+    "file": "assets/third_party/noto/1f4c5.svg",
+    "source": "https://raw.githubusercontent.com/googlefonts/noto-emoji/v2.047/svg/emoji_u1f4c5.svg",
+    "license": "See Noto README and bundled license notices",
+    "sha256": "be2d062f483768d0199fe9e93680872281984eb3f302fd3cada1b246f59a5e4e"
+  },
+  {
+    "file": "assets/third_party/noto/1f4ca.svg",
+    "source": "https://raw.githubusercontent.com/googlefonts/noto-emoji/v2.047/svg/emoji_u1f4ca.svg",
+    "license": "See Noto README and bundled license notices",
+    "sha256": "d8d539afef021684f2ec56b0ddd40c1a363c699ed883fac9179b05858f312e4d"
+  },
+  {
+    "file": "assets/third_party/noto/1f9e9.svg",
+    "source": "https://raw.githubusercontent.com/googlefonts/noto-emoji/v2.047/svg/emoji_u1f9e9.svg",
+    "license": "See Noto README and bundled license notices",
+    "sha256": "334f25f98c0440ec9035e05ae7da6bc7f04faac89440a9b31ecd22d0dd00f499"
+  },
+  {
+    "file": "assets/third_party/noto/26a1.svg",
+    "source": "https://raw.githubusercontent.com/googlefonts/noto-emoji/v2.047/svg/emoji_u26a1.svg",
+    "license": "See Noto README and bundled license notices",
+    "sha256": "411cd100c1cfb2106ca16b7a27c1571ccc758af74a137506198e6dfc06d4dd0e"
+  },
+  {
+    "file": "assets/third_party/noto/2b50.svg",
+    "source": "https://raw.githubusercontent.com/googlefonts/noto-emoji/v2.047/svg/emoji_u2b50.svg",
+    "license": "See Noto README and bundled license notices",
+    "sha256": "35ba477f2cd01990a2712384b2ad5c2f9b0ec1def9ad94aaec139ed27f5286cf"
+  },
+  {
+    "file": "assets/audio/back_001.wav",
+    "source": "https://github.com/Calinou/kenney-interface-sounds",
+    "license": "CC0-1.0",
+    "sha256": "6fb44d6dc1fd0bbc1e7abb586bab4a838719f91428af2648a37d4acdc7530617"
+  },
+  {
+    "file": "assets/audio/click_003.wav",
+    "source": "https://github.com/Calinou/kenney-interface-sounds",
+    "license": "CC0-1.0",
+    "sha256": "b035afe3fe08b0fd3517c612bdfd362799bffe762d2cbf8f09e6a50322067358"
+  },
+  {
+    "file": "assets/audio/confirmation_001.wav",
+    "source": "https://github.com/Calinou/kenney-interface-sounds",
+    "license": "CC0-1.0",
+    "sha256": "f9d0ef5a5c740c2ac250ac3876db9e4340669044a5bf78ae09192918db3e2ebc"
+  },
+  {
+    "file": "assets/audio/drop_003.wav",
+    "source": "https://github.com/Calinou/kenney-interface-sounds",
+    "license": "CC0-1.0",
+    "sha256": "c62109152dd126f65fcae62775c5f42e7ccc646edeae770a2b62e33e82f054a0"
+  },
+  {
+    "file": "assets/audio/drop_004.wav",
+    "source": "https://github.com/Calinou/kenney-interface-sounds",
+    "license": "CC0-1.0",
+    "sha256": "8bec0bc73a2536c81467790f41529a0c335b3915baa2caf3d248b6ebacce93a2"
+  },
+  {
+    "file": "assets/audio/exploration-theme.ogg",
+    "source": "https://opengameart.org/content/exploration-theme",
+    "license": "CC0-1.0",
+    "sha256": "1546f1e6d7f42e380b9f608a41e640f98ed48a96f3df3bc704663f4c824f2e8d"
+  },
+  {
+    "file": "assets/audio/scratch_001.wav",
+    "source": "https://github.com/Calinou/kenney-interface-sounds",
+    "license": "CC0-1.0",
+    "sha256": "8db53f023af3410573861dc7b434a052965b6282573b999af17e31d23557d7d2"
+  },
+  {
+    "file": "assets/audio/wood-slide-soft.wav",
+    "source": "https://licensing.routenote.com/sound-effect/board-game-wood-piece-slide",
+    "license": "CC0-1.0",
+    "modification": "Filtered, trimmed and faded derivative; see tools/prepare_wood_audio.py",
+    "sha256": "9f810f0f4b167963922d0d5e7b184c09f38f612e298b95975ad9110bd6e659f7"
+  },
+  {
+    "file": "assets/audio/wood-place-soft.wav",
+    "source": "https://licensing.routenote.com/sound-effect/board-game-wood-piece-slide",
+    "license": "CC0-1.0",
+    "modification": "Filtered, trimmed and faded derivative; see tools/prepare_wood_audio.py",
+    "sha256": "c6506320a2be470ff67a881f357f93de7746944c5022bf96534c790040edb89f"
+  },
+  {
+    "file": "assets/audio/source/wood-piece-original.mp3",
+    "source": "https://licensing.routenote.com/sound-effect/board-game-wood-piece-slide",
+    "license": "CC0-1.0",
+    "modification": "Unchanged original MP3",
+    "sha256": "25d1c87adbcf749afebb83a21e4c4b7c50ff1b7c65398e94e348024eb78fdbf1"
+  },
+  {
+    "file": "assets/third_party/fluent/bulb.png",
+    "source": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Light%20bulb/3D/light_bulb_3d.png",
+    "license": "MIT",
+    "sha256": "df7b09aa18301507e6fb8c279df66d9afa465b6fed3e63d2efa84dacebdbbf79"
+  },
+  {
+    "file": "assets/third_party/fluent/calendar.png",
+    "source": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Spiral%20calendar/3D/spiral_calendar_3d.png",
+    "license": "MIT",
+    "sha256": "bdb3fc64cb0faa458cc6830407ad2d6a1e875082b3eb262104eb0034f86e2725"
+  },
+  {
+    "file": "assets/third_party/fluent/palette.png",
+    "source": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Artist%20palette/3D/artist_palette_3d.png",
+    "license": "MIT",
+    "sha256": "147e62f6523e7e923add4ed5497bf90982d22e04eb2e65ab916b743de2dbe1d2"
+  },
+  {
+    "file": "assets/third_party/fluent/star.png",
+    "source": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Star/3D/star_3d.png",
+    "license": "MIT",
+    "sha256": "b935cdf502b69054bc2b08e7ba4e4eaba6499564a2041dd77d6291e21bf8cfe8"
+  },
+  {
+    "file": "assets/third_party/fluent/stats.png",
+    "source": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Bar%20chart/3D/bar_chart_3d.png",
+    "license": "MIT",
+    "sha256": "0d83833e992b128aa00b85220fc2f777516bbdeb92e9e1e019a7b715ecc6ef97"
+  },
+  {
+    "file": "assets/third_party/fluent/trophy.png",
+    "source": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Trophy/3D/trophy_3d.png",
+    "license": "MIT",
+    "sha256": "7c4a9805f354eb2aec35063a95a4043306efc726324c0d128883f24497857bbc"
+  }
+]

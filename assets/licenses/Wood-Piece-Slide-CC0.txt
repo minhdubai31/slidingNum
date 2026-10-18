@@ -1,0 +1,20 @@
+Title: Board Game Wood Piece Slide
+Author: Jeff Final Boss / El Final Boss
+License: Creative Commons Zero (CC0 1.0)
+Source: https://licensing.routenote.com/sound-effect/board-game-wood-piece-slide
+Original public file: https://storage.googleapis.com/routenote-licensing-storage/public/sound_effects/7292/546118__el-boss__piece-slide.mp3
+Original description: A chess piece sliding on a board, made for a chess game.
+
+Credit supplied by source:
+Sound Effect: "Board Game Wood Piece Slide" by "Jeff Final Boss"
+Licensed free through RouteNote Licensing
+https://licensing.routenote.com/sound-effect/board-game-wood-piece-slide
+
+Derivatives in this project:
+- wood-slide-soft.wav: decoded to mono PCM, band-pass filtered 85–1900 Hz,
+  trimmed silence, gentle fade-in/out, peak normalized to 0.30.
+- wood-place-soft.wav: short contact taken from the same recording,
+  low-pass filtered at 1400 Hz, faded, peak normalized to 0.23.
+
+Preparation: tools/decode_wood_audio.gd and tools/prepare_wood_audio.py.
+The original MP3 is preserved in assets/audio/source/ (excluded from game import).
