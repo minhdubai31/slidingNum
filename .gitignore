@@ -3,6 +3,10 @@
 .godot-export-credentials
 export_credentials.cfg
 
+# Generated UI screenshots and their editor metadata (keep output folder)
+/artifacts/*
+!/artifacts/.gdignore
+
 # Exported builds and generated Android build template
 /builds/
 /android/build/

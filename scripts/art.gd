@@ -15,6 +15,63 @@ const MATERIALS = [
 
 static var cache: Dictionary = {}
 
+static func crystal_star(dimension: int, completed: bool) -> Texture2D:
+	var key := "crystal_star_%d_%s" % [dimension, str(completed)]
+	if cache.has(key):
+		return cache[key]
+	# Trace the reference silhouette: long arms, soft tips and deep valleys.
+	var points := PackedVector2Array([Vector2(32, 1), Vector2(43, 19), Vector2(64, 23), Vector2(50, 38), Vector2(53, 63), Vector2(32, 54), Vector2(13, 64), Vector2(16, 38), Vector2(0, 24), Vector2(22, 19)])
+	var rounded := ""
+	for i in range(points.size()):
+		var vertex := points[i]
+		var radius: float = 0.13 if i % 2 == 0 else 0.06
+		var incoming := vertex.lerp(points[posmod(i - 1, points.size())], radius)
+		var outgoing := vertex.lerp(points[(i + 1) % points.size()], radius)
+		rounded += ("M" if i == 0 else "L") + "%s %s Q%s %s %s %s " % [incoming.x, incoming.y, vertex.x, vertex.y, outgoing.x, outgoing.y]
+	rounded += "Z"
+	if not completed:
+		return svg_texture(key, svg_doc(64, 68, '<path d="%s" fill="#ded8cd" stroke="#b8ad9a" stroke-width="1.2"/>' % rounded), 3.0)
+	var color: Color = [Color("16bd7c"), Color("f3b620"), Color("e94660")][clampi(dimension - 3, 0, 2)]
+	var defs := '<defs><clipPath id="star"><path d="%s"/></clipPath>' % rounded
+	var shades := [0.72, 0.34, 0.60, -0.38, 0.14, -0.46, -0.12, -0.3, 0.35, 0.06]
+	for i in range(10):
+		var shade: float = shades[i]
+		var light := color.lightened(shade) if shade >= 0 else color.darkened(-shade)
+		var dark := color.darkened(0.28) if i % 2 else color.lightened(0.2)
+		defs += '<linearGradient id="face%d" x1="0" y1="0" x2="0.8" y2="1"><stop stop-color="#%s"/><stop offset="0.55" stop-color="#%s"/><stop offset="1" stop-color="#%s"/></linearGradient>' % [i, light.to_html(false), light.lightened(0.12).to_html(false), dark.to_html(false)]
+	defs += '</defs>'
+	var body := defs + '<path d="%s" transform="translate(0 1.5)" fill="#%s"/>' % [rounded, color.darkened(0.4).to_html(false)]
+	body += '<g clip-path="url(#star)">'
+	for i in range(10):
+		var a := points[i]
+		var b := points[(i + 1) % 10]
+		body += '<polygon points="32,33 %s,%s %s,%s" fill="url(#face%d)"/>' % [a.x, a.y, b.x, b.y, i]
+		var middle := a.lerp(b, 0.46)
+		var inner := Vector2(32, 33).lerp(a, 0.5)
+		body += '<polygon points="%s,%s %s,%s %s,%s" fill="#ffffff" fill-opacity="%s"/>' % [a.x, a.y, middle.x, middle.y, inner.x, inner.y, 0.20 if i % 2 == 0 else 0.08]
+	body += '<path d="M32 3Q30 16 33 30L39 20Z" fill="#ffffff" fill-opacity="0.64"/>'
+	body += '<path d="M4 24Q16 28 29 32L20 22Z" fill="#ffffff" fill-opacity="0.26"/>'
+	body += '<path d="M61 24Q44 23 33 33L43 31Z" fill="#ffffff" fill-opacity="0.68"/>'
+	body += '<path d="M14 58Q17 46 30 35L19 43Z" fill="#ffffff" fill-opacity="0.56"/>'
+	body += '<path d="M49 59Q45 44 34 35L43 43Z" fill="#ffffff" fill-opacity="0.44"/>'
+	body += '<path d="M32 3L32 33L61 24M32 33L49 60M32 33L13 60M32 33L3 24" stroke="#ffffff" stroke-opacity="0.6" stroke-width="0.65" fill="none"/></g>'
+	body += '<path d="%s" fill="none" stroke="#%s" stroke-width="1.2"/>' % [rounded, color.lightened(0.7).to_html(false)]
+	return svg_texture(key, svg_doc(64, 68, body), 3.0)
+
+
+static func personal_album_art() -> Texture2D:
+	var body := '<defs><linearGradient id="bg" x2="0.8" y2="1"><stop stop-color="#edf7f0"/><stop offset="1" stop-color="#cfdfdb"/></linearGradient><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#b9dcf1"/><stop offset="1" stop-color="#e1f1f2"/></linearGradient></defs>'
+	body += '<rect width="240" height="240" rx="24" fill="url(#bg)"/>'
+	body += '<circle cx="48" cy="48" r="30" fill="#ffffff" fill-opacity="0.30"/><circle cx="206" cy="150" r="52" fill="#ffffff" fill-opacity="0.22"/>'
+	body += '<rect x="53" y="47" width="140" height="129" rx="16" transform="rotate(12 123 111)" fill="#90afa4" fill-opacity="0.18"/>'
+	body += '<rect x="46" y="42" width="140" height="129" rx="16" transform="rotate(-9 116 107)" fill="#f4e9d1" stroke="#ffffff" stroke-width="3"/>'
+	body += '<rect x="51" y="49" width="138" height="127" rx="15" fill="#fffdf7" stroke="#ffffff" stroke-width="3"/>'
+	body += '<rect x="61" y="59" width="118" height="92" rx="9" fill="url(#sky)"/><circle cx="148" cy="82" r="12" fill="#fff4c9"/>'
+	body += '<path d="M61 133L92 101Q96 97 101 102L129 129L144 113Q149 108 153 113L179 138V142Q179 151 170 151H70Q61 151 61 142Z" fill="#8cb9a2"/><path d="M61 141Q97 113 129 134Q151 145 179 130V142Q179 151 170 151H70Q61 151 61 142Z" fill="#6fa18c"/>'
+	body += '<rect x="94" y="160" width="52" height="5" rx="2.5" fill="#e9e1d1"/>'
+	body += '<circle cx="178" cy="164" r="21" fill="#5e9c80" stroke="#fffdf7" stroke-width="4"/><path d="M178 155V173M169 164H187" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>'
+	return svg_texture("personal_album", svg_doc(240, 240, body), 2.0)
+
 static func material(theme_id: int) -> Dictionary:
 	return MATERIALS[clampi(theme_id, 0, MATERIALS.size() - 1)]
 

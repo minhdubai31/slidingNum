@@ -26,6 +26,7 @@ var photo_mode: bool = false
 var picture_index: int = 0
 var pending_photo: bool = false
 var pending_picture: int = 0
+var picture_topic: int = 0
 var custom_path: String = ""
 var active_session: bool = false
 var won_recorded: bool = false
@@ -164,6 +165,7 @@ func go(destination: String, animate: bool = true) -> void:
 		"home": home_screen()
 		"levels": levels_screen()
 		"gallery": gallery_screen()
+		"topic": topic_screen()
 		"game": game_screen()
 		"result": result_screen()
 		"themes": themes_screen()
@@ -394,7 +396,6 @@ func splash_screen() -> void:
 	center.add_child(mini)
 	column.add_child(center)
 	logo()
-	centered("Mỗi bước nhỏ, một niềm vui.", 17, Color.WHITE, true)
 	gap(clampf(size.y * 0.1, 30, 100))
 	var progress := ProgressBar.new()
 	progress.custom_minimum_size.y = 10
@@ -406,7 +407,7 @@ func splash_screen() -> void:
 	progress.add_theme_stylebox_override("background", track)
 	progress.add_theme_stylebox_override("fill", fill)
 	column.add_child(progress)
-	centered("Đang chuẩn bị những mảnh ghép…", 13, Color.WHITE)
+	centered("Đang tải…", 13, Color.WHITE)
 	create_tween().tween_property(progress, "value", 100.0, 1.4).set_trans(Tween.TRANS_SINE)
 	pop_in(mini, 0.05, 0.6)
 	get_tree().create_timer(1.65).timeout.connect(func():
@@ -482,10 +483,6 @@ func home_screen() -> void:
 	settings_button.name = "SettingsButton"
 	top.add_child(settings_button)
 	logo()
-	var subtitle := centered("Xếp số · Xếp ảnh · Thư giãn mỗi ngày", 15, Color.WHITE, true)
-	subtitle.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.35))
-	subtitle.add_theme_constant_override("shadow_offset_y", 2)
-	fit(subtitle, content_width())
 	var flexible := gap(0)
 	mode_card(false)
 	mode_card(true)
@@ -613,30 +610,20 @@ func mode_card(photo: bool) -> void:
 func begin_flow(photo: bool) -> void:
 	pending_photo = photo
 	pending_picture = picture_index
+	picture_topic = -1 if picture_index < 0 else picture_index
 	go("gallery" if photo else "levels")
 
 # ------------------------------------------------------------------ levels & gallery
 
 func levels_screen() -> void:
-	header("Xếp ảnh" if pending_photo else "Xếp số", "gallery" if pending_photo else "home")
+	header("Xếp ảnh" if pending_photo else "Xếp số", "topic" if pending_photo else "home")
 	var thumb: float = clampf(size.x * 0.31, 104, 136)
-	for n in [3, 4, 5]:
-		var selected: bool = n == puzzle.dimension
+	for n in ([3, 4, 5] if pending_photo else [3, 4, 5, 6]):
 		var card := U.action("", func(): request_start(n)) as SlideButton
 		card.name = "Level%d" % n
-		card.custom_minimum_size.y = thumb + 34
+		card.custom_minimum_size.y = thumb + (62 if pending_photo else 34)
 		card.corner_radius = 24.0
 		column.add_child(card)
-		if selected:
-			var ring := Panel.new()
-			ring.name = "SelectedRing"
-			ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			var blue := U.panel(Color(0.85, 0.92, 1.0, 0.45), 24, false)
-			blue.border_color = U.BLUE
-			blue.set_border_width_all(3)
-			ring.add_theme_stylebox_override("panel", blue)
-			overlay_fill(card, ring)
-			ring.offset_bottom = -2
 		var line := HBoxContainer.new()
 		line.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		line.offset_left = 18
@@ -656,40 +643,37 @@ func levels_screen() -> void:
 		words.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		words.add_theme_constant_override("separation", 3)
 		line.add_child(words)
-		words.add_child(U.text("%d × %d" % [n, n], 32 if not compact() else 28, U.BLUE if selected else U.INK, true))
-		var count := U.text(U.t("%d mảnh ghép" if pending_photo else "%d ô số") % (n * n - 1), 15, U.BLUE if selected else U.MUTED)
+		words.add_child(U.text("%d × %d" % [n, n], 32 if not compact() else 28, U.INK, true))
+		var count := U.text(U.t("%d mảnh ghép" if pending_photo else "%d ô số") % (n * n - 1), 15, U.MUTED)
 		words.add_child(count)
-		var tone: Array = [["Dễ", "d8f4de", "2e8a49"], ["Trung bình", "fdeccb", "c27812"], ["Khó", "fcdcd8", "c8443a"]][n - 3]
+		var tone: Array = [["Dễ", "178b54", "ffffff"], ["Trung bình", "f2bb38", "573800"], ["Khó", "d83b4d", "ffffff"], ["Rất khó", "8347bd", "ffffff"]][n - 3]
 		words.add_child(U.chip(tone[0], Color(tone[1]), Color(tone[2])))
-		var chevron := icon_image("chevron", 20, "1677ff" if selected else ["e0663a", "1677ff", "a8987f"][n - 3])
+		if pending_photo:
+			var best := profile.picture_best(picture_key(pending_picture), n)
+			var best_label := U.text((U.t("Nhanh nhất: %s") % format_time(best)) if best > 0 else U.t("Chưa hoàn thành"), 13, Color("2e8a49") if best > 0 else U.MUTED, best > 0)
+			best_label.name = "PictureBest%d" % n
+			best_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			words.add_child(best_label)
+		var chevron := icon_image("chevron", 20, ["178b54", "b67a0c", "d83b4d", "8347bd"][n - 3])
 		chevron.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		line.add_child(chevron)
-	paragraph("Chạm vào cấp độ để bắt đầu. Mỗi bàn đều có lời giải.").horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
 func gallery_screen() -> void:
 	header("Chọn chủ đề ảnh")
-	column.add_theme_constant_override("separation", 14)
-	var grid := GridContainer.new()
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 12)
-	grid.add_theme_constant_override("v_separation", 12)
-	column.add_child(grid)
-	var card_size: float = (content_width() - 12) / 2.0
-	for i in range(pictures.size()):
-		var card := U.action("", func(): pending_picture = i; go("levels"))
-		card.name = "PhotoCard%d" % i
-		card.flat = true
-		card.custom_minimum_size = Vector2(0, card_size * 1.02)
+	var grid := picture_grid()
+	var personal := personal_picture_ids()
+	var cover: Texture2D = picture_texture(personal[0]) if not personal.is_empty() else null
+	if cover:
+		picture_card(grid, cover, "Của bạn", U.t("%d ảnh") % personal.size(), "YourPictures", func(): picture_topic = -1; go("topic"))
+	else:
+		var card := U.action("", func(): picture_topic = -1; go("topic"))
+		card.name = "YourPictures"
+		card.tooltip_text = U.t("Của bạn")
+		card.custom_minimum_size.y = (content_width() - 12) / 2.0 * 1.02
 		grid.add_child(card)
-		var cover := TextureRect.new()
-		cover.texture = pictures[i]
-		cover.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		cover.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		var finish := ShaderMaterial.new()
-		finish.shader = load("res://shaders/photo_card.gdshader")
-		cover.material = finish
-		cover.resized.connect(func(): finish.set_shader_parameter("rect_size", cover.size))
-		overlay_fill(card, cover)
+		var center := CenterContainer.new()
+		overlay_fill(card, center)
+		center.add_child(icon_image("image", 56, "8a9d92"))
 		var margin := MarginContainer.new()
 		margin.add_theme_constant_override("margin_left", 14)
 		margin.add_theme_constant_override("margin_right", 12)
@@ -703,21 +687,184 @@ func gallery_screen() -> void:
 		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		bottom.add_child(line)
 		var words := VBoxContainer.new()
-		words.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		words.add_theme_constant_override("separation", -2)
 		words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		words.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		line.add_child(words)
-		var name_label := U.text(PHOTO_NAMES[i], 18, Color.WHITE, true)
-		name_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.45))
-		name_label.add_theme_constant_override("shadow_offset_y", 1)
-		words.add_child(fit(name_label, card_size - 50, 12))
-		words.add_child(U.text("1 ảnh", 13, Color("e3eeee")))
-		var chevron := icon_image("chevron", 16, "ffffff")
+		words.add_child(fit(U.text("Của bạn", 18, U.INK, true), (content_width() - 12) / 2.0 - 50, 12))
+		words.add_child(U.text(U.t("%d ảnh") % 0, 13, U.MUTED))
+		var chevron := icon_image("chevron", 16)
 		chevron.size_flags_vertical = Control.SIZE_SHRINK_END
 		line.add_child(chevron)
-	var pick := cta("Chọn ảnh từ thiết bị", "image", open_picture_picker, 56)
-	pick.name = "PickPicture"
-	column.add_child(pick)
+	for i in range(PHOTO_NAMES.size()):
+		picture_card(grid, pictures[i], PHOTO_NAMES[i], U.t("%d ảnh") % 1, "TopicCard%d" % i, func(): picture_topic = i; go("topic"))
+
+func topic_screen() -> void:
+	header("Của bạn" if picture_topic < 0 else PHOTO_NAMES[picture_topic], "gallery")
+	var ids: Array[int] = []
+	if picture_topic < 0:
+		ids = personal_picture_ids()
+	else:
+		ids.append(picture_topic)
+	if not ids.is_empty():
+		paragraph(U.t("%d ảnh") % ids.size())
+	if not ids.is_empty():
+		var grid := picture_grid()
+		for i in ids:
+			var title: String = U.t("Ảnh của bạn") if i < 0 else PHOTO_NAMES[i]
+			var item := VBoxContainer.new()
+			item.custom_minimum_size.x = (content_width() - 12) / 2.0
+			item.add_theme_constant_override("separation", 6)
+			grid.add_child(item)
+			var photo_card := picture_card(item, picture_texture(i), title, "", "PhotoCard%d" % i, func(): pending_picture = i; pending_photo = true; go("levels"), false)
+			if i < 0:
+				var remove := U.round_action("trash", func(): confirm_delete_picture(i), 32)
+				remove.name = "DeletePicture%d" % i
+				remove.tooltip_text = U.t("Xóa ảnh")
+				photo_card.add_child(remove)
+				remove.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+				remove.offset_left = -42
+				remove.offset_right = -8
+				remove.offset_top = 8
+				remove.offset_bottom = 42
+			var inset := MarginContainer.new()
+			inset.add_theme_constant_override("margin_bottom", 9)
+			inset.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			overlay_fill(photo_card, inset)
+			var align := VBoxContainer.new()
+			align.alignment = BoxContainer.ALIGNMENT_END
+			align.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			inset.add_child(align)
+			var glass := PanelContainer.new()
+			glass.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			glass.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var skin := U.panel(Color(1.0, 0.97, 0.91, 0.90), 18, false)
+			skin.set_content_margin_all(4)
+			skin.content_margin_left = 8
+			skin.content_margin_right = 8
+			skin.border_color = Color(1, 1, 1, 0.7)
+			skin.set_border_width_all(1)
+			glass.add_theme_stylebox_override("panel", skin)
+			align.add_child(glass)
+			var badges := HBoxContainer.new()
+			badges.name = "PictureProgress%d" % i
+			badges.add_theme_constant_override("separation", 4)
+			badges.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			glass.add_child(badges)
+			for n in [3, 4, 5]:
+				var completed: bool = profile.picture_best(picture_key(i), n) > 0
+				var badge := VBoxContainer.new()
+				badge.name = "Completed%d" % n
+				badge.set_meta("completed", completed)
+				badge.tooltip_text = "%d×%d · %s" % [n, n, U.t("Đã hoàn thành" if completed else "Chưa hoàn thành")]
+				badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				badge.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				badge.add_theme_constant_override("separation", 0)
+				var star := TextureRect.new()
+				star.name = "CrystalStar"
+				star.texture = SlideArt.crystal_star(n, completed)
+				star.custom_minimum_size = Vector2(28, 30)
+				star.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+				star.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				star.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+				star.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				if completed:
+					var shine := ShaderMaterial.new()
+					shine.shader = preload("res://shaders/crystal_star.gdshader")
+					shine.set_shader_parameter("phase", float(n - 3) * 0.8)
+					star.material = shine
+				badge.add_child(star)
+				badges.add_child(badge)
+	elif picture_topic < 0:
+		var empty := CenterContainer.new()
+		empty.custom_minimum_size.y = 270
+		column.add_child(empty)
+		empty.add_child(icon_image("image", 64, "8a9d92"))
+	if picture_topic < 0:
+		var pick := cta("Thêm ảnh cá nhân", "image", open_picture_picker, 56)
+		pick.name = "PickPicture"
+		column.add_child(pick)
+
+func picture_grid() -> GridContainer:
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 12)
+	column.add_child(grid)
+	return grid
+
+func picture_card(grid: Container, texture: Texture2D, title: String, subtitle: String, node_name: String, callback: Callable, show_caption: bool = true) -> Button:
+	var card_size: float = (content_width() - 12) / 2.0
+	var card := U.action("", callback)
+	card.name = node_name
+	card.flat = true
+	card.custom_minimum_size = Vector2(0, card_size * 1.02)
+	grid.add_child(card)
+	var cover := TextureRect.new()
+	cover.texture = texture
+	cover.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	cover.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	var finish := ShaderMaterial.new()
+	finish.shader = load("res://shaders/photo_card.gdshader")
+	cover.material = finish
+	cover.resized.connect(func(): finish.set_shader_parameter("rect_size", cover.size))
+	overlay_fill(card, cover)
+	if not show_caption:
+		finish.set_shader_parameter("shade_strength", 0.18)
+		return card
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 14)
+	margin.add_theme_constant_override("margin_right", 12)
+	margin.add_theme_constant_override("margin_bottom", 12)
+	overlay_fill(card, margin)
+	var bottom := VBoxContainer.new()
+	bottom.alignment = BoxContainer.ALIGNMENT_END
+	bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_child(bottom)
+	var line := HBoxContainer.new()
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bottom.add_child(line)
+	var words := VBoxContainer.new()
+	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	words.add_theme_constant_override("separation", -2)
+	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	line.add_child(words)
+	var name_label := U.text(title, 18, Color.WHITE, true)
+	name_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.45))
+	name_label.add_theme_constant_override("shadow_offset_y", 1)
+	words.add_child(fit(name_label, card_size - 50, 12))
+	if not subtitle.is_empty():
+		words.add_child(U.text(subtitle, 13, Color("e3eeee")))
+	var chevron := icon_image("chevron", 16, "ffffff")
+	chevron.size_flags_vertical = Control.SIZE_SHRINK_END
+	line.add_child(chevron)
+	return card
+
+func confirm_delete_picture(id: int) -> void:
+	var message := "Xóa ảnh và thành tích của ảnh này?"
+	if active_session and picture_index == id:
+		message = "Ảnh đang dùng trong ván hiện tại. Xóa ảnh sẽ xóa cả ván đang chơi và thành tích của ảnh."
+	show_overlay("Xóa ảnh?", message, [["Xóa ảnh", func(): delete_picture(id)], ["Hủy", func(): pass]], "trash")
+
+func delete_picture(id: int) -> void:
+	if id >= 0 or not FileAccess.file_exists(personal_picture_path(id)):
+		return
+	if DirAccess.remove_absolute(ProjectSettings.globalize_path(personal_picture_path(id))) != OK:
+		show_overlay("Không xóa được ảnh", "Thử lại sau.", [["Đóng", func(): pass]])
+		return
+	profile.picture_records.erase(picture_key(id))
+	profile.save()
+	if active_session and picture_index == id:
+		active_session = false
+		for path in [SAVE_PATH, SAVE_PATH + ".tmp", "user://session.json"]:
+			if FileAccess.file_exists(path):
+				DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	if picture_index == id:
+		picture_index = 0
+	if pending_picture == id:
+		pending_picture = 0
+	picture_topic = -1
+	go("topic")
 
 func open_picture_picker() -> void:
 	if android_picker:
@@ -725,15 +872,36 @@ func open_picture_picker() -> void:
 	else:
 		file_dialog.popup_centered_ratio(0.85)
 
+func personal_picture_path(id: int) -> String:
+	return "user://custom_picture.png" if id == -1 else "user://custom_pictures/%d.png" % -id
+
+func picture_key(id: int) -> String:
+	return personal_picture_path(id) if id < 0 else PHOTO_FILES[posmod(id, PHOTO_FILES.size())]
+
+func personal_picture_ids() -> Array[int]:
+	var ids: Array[int] = []
+	if FileAccess.file_exists("user://custom_picture.png"):
+		ids.append(-1)
+	if DirAccess.dir_exists_absolute("user://custom_pictures"):
+		for file in DirAccess.get_files_at("user://custom_pictures"):
+			if file.get_extension() == "png" and file.get_basename().is_valid_int() and int(file.get_basename()) >= 2:
+				ids.append(-int(file.get_basename()))
+	ids.sort()
+	ids.reverse()
+	return ids
+
+func picture_texture(id: int) -> Texture2D:
+	if id < 0 and FileAccess.file_exists(personal_picture_path(id)):
+		var image := Image.load_from_file(personal_picture_path(id))
+		if image != null and not image.is_empty():
+			return ImageTexture.create_from_image(image)
+	return pictures[posmod(maxi(id, 0), pictures.size())]
+
 func selected_picture() -> Texture2D:
-	if pending_picture == -1 and FileAccess.file_exists("user://custom_picture.png"):
-		return ImageTexture.create_from_image(Image.load_from_file("user://custom_picture.png"))
-	return pictures[posmod(pending_picture, pictures.size())]
+	return picture_texture(pending_picture)
 
 func current_picture() -> Texture2D:
-	if picture_index == -1 and FileAccess.file_exists("user://custom_picture.png"):
-		return ImageTexture.create_from_image(Image.load_from_file("user://custom_picture.png"))
-	return pictures[posmod(picture_index, pictures.size())]
+	return picture_texture(picture_index)
 
 func request_start(n: int, daily: bool = false) -> void:
 	if active_session and puzzle.moves > 0 and not puzzle.solved():
@@ -829,9 +997,10 @@ func game_screen() -> void:
 	board.drag_cancelled.connect(audio.play_cancel)
 	column.add_child(board)
 	board.sync_positions()
-	status_label = centered("Vuốt hoặc chạm ô cạnh khoảng trống", 14, Color("f6e7cf"))
+	status_label = centered("", 14, Color("f6e7cf"))
 	status_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.4))
 	status_label.add_theme_constant_override("shadow_offset_y", 1)
+	status_label.hide()
 	# Free space goes here, so the controls sit at the bottom of the screen.
 	var spacer := Control.new()
 	spacer.name = "Spacer"
@@ -847,7 +1016,7 @@ func game_screen() -> void:
 	actions.alignment = BoxContainer.ALIGNMENT_CENTER
 	var first := game_action("Xem ảnh" if photo_mode else "Trộn số", "eye" if photo_mode else "shuffle", func():
 		if not photo_mode:
-			show_overlay("Trộn lại bàn?", "Bạn sẽ bắt đầu một ván mới.", [["Trộn số", func(): pending_photo = false; new_game(puzzle.dimension)], ["Hủy", func(): pass]])
+			show_overlay("Trộn lại bàn?", "Tiến trình ván hiện tại sẽ bị mất.", [["Trộn số", func(): pending_photo = false; new_game(puzzle.dimension)], ["Hủy", func(): pass]])
 	)
 	first.name = "Peek" if photo_mode else "Shuffle"
 	if photo_mode:
@@ -899,7 +1068,7 @@ func history_button(value: String, glyph: String, callback: Callable, node_name:
 	return b
 
 func pause_game() -> void:
-	show_overlay("Tạm dừng", "Ván chơi đã được lưu. Bạn muốn làm gì?", [["Tiếp tục", func(): pass], ["Về màn hình chính", func(): save_session(); go("home")]], "pause")
+	show_overlay("Tạm dừng", "", [["Tiếp tục", func(): pass], ["Về màn hình chính", func(): save_session(); go("home")]], "pause")
 
 func request_restart() -> void:
 	show_overlay("Chơi lại từ đầu?", "Giữ nguyên bàn xếp; đặt lại bước đi và thời gian.", [["Làm lại", restart_game], ["Hủy", func(): pass]], "restart")
@@ -930,6 +1099,7 @@ func hint_move() -> void:
 	board.hint_tile = value
 	board.hint_until = board.clock + 3.0
 	status_label.text = U.t("Di chuyển ô đang sáng vào khoảng trống")
+	status_label.show()
 	var counter := hint_button.find_child("HintCount", true, false) as Label
 	if counter:
 		counter.text = str(hints_left)
@@ -967,7 +1137,8 @@ func on_moved(cue: String = "drop") -> void:
 	if is_instance_valid(board):
 		board.hint_tile = -1
 	if is_instance_valid(status_label):
-		status_label.text = U.t("Vuốt hoặc chạm ô cạnh khoảng trống")
+		status_label.text = ""
+		status_label.hide()
 	if is_instance_valid(page):
 		var undo := page.find_child("Undo", true, false) as Button
 		if undo:
@@ -982,9 +1153,10 @@ func on_completed() -> void:
 		return
 	won_recorded = true
 	audio.play_win()
-	new_record = profile.record_win(photo_mode, elapsed, puzzle.moves, puzzle.dimension, daily_date)
+	new_record = profile.record_win(photo_mode, elapsed, puzzle.moves, puzzle.dimension, daily_date, picture_key(picture_index) if photo_mode else "")
 	board.locked = true
-	status_label.text = U.t("Tuyệt vời! Bạn đã hoàn thành.")
+	status_label.text = U.t("Đã hoàn thành")
+	status_label.show()
 	save_session()
 	get_tree().create_timer(1.1 if profile.settings.animation else 0.1).timeout.connect(func():
 		if screen == "game" and puzzle.solved():
@@ -1459,7 +1631,6 @@ func settings_screen() -> void:
 	list_row(more, white("info"), "8e8a83", "Nguồn tài nguyên", show_credits)
 	list_row(more, white("trash"), "ff3b30", "Xóa dữ liệu trò chơi", confirm_clear, "", true)
 	gap(4)
-	centered("Chơi ngoại tuyến. Tiến trình và ảnh riêng được lưu trên thiết bị.", 13, U.MUTED)
 	centered(U.t("SLIDE PUZZLE · Phiên bản %s") % VERSION, 12, Color("b0a28c"), true)
 
 func choose_language() -> void:
@@ -1475,13 +1646,15 @@ func set_language(code: String) -> void:
 	go("settings", false)
 
 func show_credits() -> void:
-	show_overlay("Nguồn tài nguyên", "Icon: Font Awesome Free 6.7.2 · Fonticons (CC BY 4.0)\nIcon màu: vẽ riêng cho dự án · Microsoft Fluent Emoji (MIT) · Google Noto Emoji (Apache 2.0)\nTiếng gỗ: Board Game Wood Piece Slide · Jeff Final Boss (CC0)\nÂm thanh nút: Kenney Interface Sounds (CC0)\nNhạc: Exploration Theme · Cleyton Kauffman (CC0)\nFont: Nunito (OFL)\n\nNguồn và giấy phép đầy đủ đi kèm dự án.", [["Đóng", func(): pass]])
+	show_overlay("Nguồn tài nguyên", "Icon: Font Awesome Free 6.7.2 · Fonticons (CC BY 4.0)\nIcon màu: vẽ riêng cho dự án · Microsoft Fluent Emoji (MIT) · Google Noto Emoji (Apache 2.0)\nTiếng gỗ: Board Game Wood Piece Slide · Jeff Final Boss (CC0)\nÂm thanh nút: Kenney Interface Sounds (CC0)\nNhạc: Exploration Theme · Cleyton Kauffman; Calm Theme · pebonius; Waiting II · Kistol (CC0) (CC0)\nFont: Nunito (OFL)", [["Đóng", func(): pass]])
 
 func confirm_clear() -> void:
 	show_overlay("Xóa toàn bộ dữ liệu?", "Xóa tiến trình, thống kê, cài đặt và ảnh đã nhập trên thiết bị. Không thể hoàn tác.", [["Xóa dữ liệu", clear_data], ["Giữ lại", func(): pass]], "trash")
 
 func clear_data() -> void:
 	var language: String = profile.settings.language
+	for id in personal_picture_ids():
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(personal_picture_path(id)))
 	for path in [SAVE_PATH, SlideProfile.PATH, "user://custom_picture.png", "user://session.json"]:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
@@ -1614,8 +1787,8 @@ func help_screen() -> void:
 	var after = miniature(3, mini_size)
 	after.hide_numbers = false
 	examples.add_child(after)
-	paragraph("Gợi ý làm sáng một ô có thể đi theo đường giải. Mỗi ván có 3 lượt gợi ý. Hoàn tác không giới hạn; Làm lại đưa bạn về bàn ban đầu.")
-	column.add_child(cta("Đã hiểu, chơi thôi!", "play", func(): go("game") if active_session and not puzzle.solved() else begin_flow(false), 56))
+	paragraph("Gợi ý làm sáng ô cần di chuyển. Mỗi ván có 3 lượt. Hoàn tác không giới hạn. Làm lại đưa bàn về trạng thái ban đầu.")
+	column.add_child(cta("Chơi", "play", func(): go("game") if active_session and not puzzle.solved() else begin_flow(false), 56))
 
 func daily_screen() -> void:
 	header("Thử thách hằng ngày")
@@ -1637,23 +1810,20 @@ func daily_screen() -> void:
 		swing.tween_property(calendar, "rotation", deg_to_rad(-5), 0.9).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 		swing.tween_property(calendar, "rotation", deg_to_rad(5), 0.9).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	fit(centered(U.t("Hôm nay, %s") % display_date(today()), 19, U.INK, true), content_width())
-	centered("Một bức ảnh. Một thử thách mới mỗi ngày.", 14, U.MUTED)
 	var unix_today: int = int(Time.get_unix_time_from_datetime_string(today() + "T12:00:00"))
 	var days: Array = []
 	for i in range(7):
 		var date: String = Time.get_datetime_string_from_unix_time(unix_today - (6 - i) * 86400).substr(0, 10)
 		days.append([date.right(2), profile.daily_wins.has(date), i == 6])
-	var perfect: bool = days.all(func(d): return d[1])
 	var track := Control.new()
 	track.name = "DailyTrack"
 	track.custom_minimum_size.y = 62
 	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(track)
 	var check: Texture2D = SlideArt.icon("check_circle")
-	var gift: Texture2D = SlideArt.icon("gift")
 	var started: float = Time.get_ticks_msec() / 1000.0
 	track.draw.connect(func():
-		var count: int = days.size() + 1
+		var count: int = days.size()
 		var node: float = minf(32.0, (track.size.x - 8) / count * 0.72)
 		var spacing: float = (track.size.x - node) / (count - 1)
 		var y: float = node * 0.5 + 2
@@ -1666,10 +1836,6 @@ func daily_screen() -> void:
 			var center := Vector2(node * 0.5 + i * spacing, y)
 			var appear: float = clampf((now - i * 0.06) / 0.3, 0.0, 1.0) if profile.settings.animation else 1.0
 			var r: float = node * 0.5 * (1.0 - pow(1.0 - appear, 3.0))
-			if i == count - 1:
-				var size_g: float = r * 2.3
-				track.draw_texture_rect(gift, Rect2(center - Vector2.ONE * size_g * 0.5, Vector2.ONE * size_g), false, Color(1, 1, 1, 1.0 if perfect else 0.45))
-				continue
 			var day: Array = days[i]
 			if day[1]:
 				track.draw_texture_rect(check, Rect2(center - Vector2.ONE * r, Vector2.ONE * r * 2), false)
@@ -1687,18 +1853,16 @@ func daily_screen() -> void:
 	var redraw := func(): track.queue_redraw()
 	get_tree().process_frame.connect(redraw)
 	track.tree_exiting.connect(func(): get_tree().process_frame.disconnect(redraw))
-	centered("Tuần hoàn hảo!" if perfect else "Hoàn thành 7 ngày liên tiếp để mở quà", 13, Color("c27812") if perfect else U.MUTED, true)
 	var preview_center := CenterContainer.new()
 	var preview = miniature(3, clampf(content_width() * 0.78, 220, 320), pictures[0])
 	preview.frameless = true
 	preview_center.add_child(preview)
 	column.add_child(preview_center)
 	var done: bool = profile.daily_wins.has(today())
-	centered("Bạn đã chinh phục hôm nay!" if done else "Ghép khung cảnh núi hồ · 3 × 3", 16, Color("2f8a49") if done else U.INK, true)
+	centered(U.t("Đã hoàn thành") + " · 3 × 3" if done else "3 × 3", 16, Color("2f8a49") if done else U.INK, true)
 	var start := cta("Chơi lại thử thách" if done else "Bắt đầu", "play", func(): request_start(3, true))
 	start.name = "DailyStart"
 	column.add_child(start)
-	paragraph("Cùng một bàn xếp cho mỗi ngày. Những ngày hoàn thành sẽ được đánh dấu trên thiết bị.").horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
 # ------------------------------------------------------------------ overlay
 
@@ -1773,16 +1937,13 @@ func animate_logo(delta: float) -> void:
 		return
 	var lockup := logo_node.get_parent() as Control
 	logo_clock += delta
-	var t: float = clampf(logo_clock / 0.8, 0.0, 1.0)
-	var k: float = t - 1.0
-	var drop: float = 1.0 + 2.0 * k * k * k + 1.0 * k * k
-	var drift: float = 0.0
-	if logo_clock > 0.8:
-		drift = (1.0 - cos((logo_clock - 0.8) * TAU / 3.6)) * 0.5 * -6.0
-	logo_node.position = lockup.size * Vector2(0.5, 1.0) + Vector2(0, (1.0 - drop) * -40.0 + drift)
-	logo_node.modulate.a = clampf(logo_clock / 0.35, 0.0, 1.0)
-	var squash: float = sin(clampf((logo_clock - 0.5) / 0.4, 0.0, 1.0) * PI) * 0.045
-	logo_node.scale = Vector2(1.0 + squash, 1.0 - squash)
+	# Fade in at rest; gradually introduce a gentle, continuous float.
+	var appear: float = smoothstep(0.0, 0.55, logo_clock)
+	var settle: float = smoothstep(0.4, 1.4, logo_clock)
+	var drift: float = sin(maxf(0.0, logo_clock - 0.4) * TAU / 4.8) * 3.0 * settle
+	logo_node.position = lockup.size * Vector2(0.5, 1.0) + Vector2(0, drift)
+	logo_node.modulate.a = appear
+	logo_node.scale = Vector2.ONE
 
 func _process(delta: float) -> void:
 	animate_logo(delta)
@@ -1808,7 +1969,9 @@ func back_action() -> void:
 	elif screen in screen_parents:
 		go(screen_parents[screen])
 	elif screen == "levels":
-		go("gallery" if pending_photo else "home")
+		go("topic" if pending_photo else "home")
+	elif screen == "topic":
+		go("gallery")
 	elif screen != "home":
 		go("home")
 
@@ -1839,8 +2002,18 @@ func import_picture(path: String) -> void:
 		return
 	var square: Image = crop_texture(image).get_image()
 	square.clear_mipmaps()
-	square.save_png("user://custom_picture.png")
-	pending_picture = -1
+	var ids := personal_picture_ids()
+	var id: int = -1 if ids.is_empty() else mini(ids.min() - 1, -2)
+	if id < -1:
+		var directory_error := DirAccess.make_dir_recursive_absolute("user://custom_pictures")
+		if directory_error != OK:
+			show_overlay("Không lưu được ảnh", "Hãy kiểm tra dung lượng trống trên thiết bị.", [["Đóng", func(): pass]])
+			return
+	if square.save_png(personal_picture_path(id)) != OK:
+		show_overlay("Không lưu được ảnh", "Hãy kiểm tra dung lượng trống trên thiết bị.", [["Đóng", func(): pass]])
+		return
+	pending_picture = id
+	picture_topic = -1
 	pending_photo = true
 	go("levels")
 
@@ -1863,7 +2036,7 @@ func load_session() -> void:
 		return
 	var n: int = int(data.get("dimension", 0))
 	var cells: Array[int] = int_array(data.get("cells", []))
-	if n < 3 or n > 5 or not valid_cells(cells, n):
+	if n < 3 or n > 6 or (n == 6 and bool(data.get("photo", false))) or not valid_cells(cells, n):
 		return
 	puzzle.dimension = n
 	puzzle.cells = cells
@@ -1885,7 +2058,9 @@ func load_session() -> void:
 		initial_cells = cells.duplicate()
 	initial_solution = int_array(data.get("initial_solution", []))
 	photo_mode = bool(data.get("photo", false))
-	picture_index = clampi(int(data.get("picture", 0)), -1, pictures.size() - 1)
+	picture_index = int(data.get("picture", 0))
+	if picture_index >= pictures.size() or (picture_index < 0 and not FileAccess.file_exists(personal_picture_path(picture_index))):
+		picture_index = 0
 	elapsed = maxf(0, float(data.get("elapsed", 0)))
 	won_recorded = bool(data.get("won", puzzle.solved()))
 	new_record = bool(data.get("record", false))

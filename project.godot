@@ -17,11 +17,11 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 config/name="Slide · Little moments of order"
 config/version="0.6.0"
 run/main_scene="res://main.tscn"
+config/quit_on_go_back=false
 config/features=PackedStringArray("4.7", "GL Compatibility")
 boot_splash/bg_color=Color(0.96, 0.93, 0.87, 1)
 boot_splash/show_image=false
 config/icon="res://assets/third_party/noto/1f9e9.svg"
-config/quit_on_go_back=false
 config/clear_color=Color(0.957, 0.949, 0.925, 1)
 
 [display]
@@ -40,7 +40,6 @@ common/snap_controls_to_pixels=false
 
 [rendering]
 
-textures/vram_compression/import_etc2_astc=true
-
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true

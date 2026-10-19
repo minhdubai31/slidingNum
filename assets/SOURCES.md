@@ -44,7 +44,7 @@
 - Nguồn: https://opengameart.org/content/exploration-theme
 - Giấy phép: CC0. Ghi chú gốc trong `licenses/Exploration-Theme-readme.txt`.
 - File Ogg gốc được đổi tên thành `audio/exploration-theme.ogg`, không cắt/biên tập nhạc.
-- Ambient/piano dài khoảng 2 phút 14 giây, được tác giả thiết kế để lặp. Game phát nhỏ, giảm âm khi mở hộp thoại và dừng khi ứng dụng mất focus.
+- Ambient/piano dài khoảng 2 phút 14 giây, được tác giả thiết kế để lặp. Trong playlist, game chuyển bài khi bản nhạc kết thúc. Game phát nhỏ, giảm âm khi mở hộp thoại và dừng khi ứng dụng mất focus.
 
 Danh mục và SHA256 của các file tải về nằm trong `third-party-manifest.json`. Có mục **Nguồn tài nguyên** trong màn Cài đặt.
 
@@ -55,3 +55,10 @@ Các tranh nền, ảnh ghép và hình cúp minh họa lớn từ MVP trước 
 - Six color icons: Microsoft Fluent Emoji 3D, https://github.com/microsoft/fluentui-emoji . MIT license at `licenses/Fluent-Emoji-MIT.txt`. Original PNGs retained; mipmaps enabled for smooth small-scale rendering.
 - `home-soft.png`, `table-soft.png`, `kitten-soft.png`, `trophy-soft.png`: generated game artwork, replacing the previous high-detail background/cat/trophy in the UI. Originals remain in the project.
 - Material tiles, beveled photo overlays and ribbon: native project vector graphics; rendered at higher resolution and mipmapped for softer edges.
+
+## Nhạc nền bổ sung
+
+- **Calm Theme — pebonius**, CC0: https://opengameart.org/content/calm-music-0 ; `audio/calm-theme.ogg`.
+- **Waiting II — Kistol**, CC0: https://opengameart.org/content/waiting-ii ; `audio/waiting-ii.ogg`.
+- Giữ nguyên bản Ogg. Thông tin giấy phép: `licenses/Additional-Music-CC0.txt`.
+- Game tự chuyển giữa ba soundtrack khi hết bài, không phát hai lần liên tiếp cùng một bản; giữ điều khiển âm lượng, giảm nhạc lúc thắng/tạm dừng và tiếp tục khi trở lại ứng dụng.

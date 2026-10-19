@@ -349,5 +349,21 @@
     "source": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Trophy/3D/trophy_3d.png",
     "license": "MIT",
     "sha256": "7c4a9805f354eb2aec35063a95a4043306efc726324c0d128883f24497857bbc"
+  },
+  {
+    "file": "assets/audio/calm-theme.ogg",
+    "source": "https://opengameart.org/sites/default/files/calm_theme.ogg",
+    "page": "https://opengameart.org/content/calm-music-0",
+    "author": "pebonius",
+    "license": "CC0",
+    "sha256": "8a701a803f365c8fe1257b2e18276a7fa8b0d62a9af601f973d43ccf4e354705"
+  },
+  {
+    "file": "assets/audio/waiting-ii.ogg",
+    "source": "https://opengameart.org/sites/default/files/Waiting%20II_0.ogg",
+    "page": "https://opengameart.org/content/waiting-ii",
+    "author": "Kistol",
+    "license": "CC0",
+    "sha256": "1f8c6eaf06d1416cbf9eadb48d65b087730d58dd7c5a1b1f107d0d025452207d"
   }
 ]

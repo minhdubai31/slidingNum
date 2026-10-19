@@ -1,6 +1,10 @@
 class_name SlideAudio
 extends Node
 
+const MUSIC_FILES = ["res://assets/audio/exploration-theme.ogg", "res://assets/audio/calm-theme.ogg", "res://assets/audio/waiting-ii.ogg"]
+var track_index: int = 0
+var track_queue: Array[int] = []
+
 var victory: AudioStreamPlayer
 var celebrating: bool = false
 var music: AudioStreamPlayer
@@ -33,12 +37,27 @@ func _ready() -> void:
 		players.append(player)
 	music = AudioStreamPlayer.new()
 	music.name = "BackgroundMusic"
-	var track: AudioStreamOggVorbis = load("res://assets/audio/exploration-theme.ogg")
-	track.loop = true
-	music.stream = track
 	music.volume_db = -60
 	add_child(music)
+	music.finished.connect(next_track)
+	play_track(0)
+
+func play_track(index: int) -> void:
+	track_index = index
+	var track: AudioStreamOggVorbis = load(MUSIC_FILES[index])
+	track.loop = false
+	music.stream = track
+	music.volume_db = -60
 	music.play()
+	update_music()
+
+func next_track() -> void:
+	if track_queue.is_empty():
+		for index in range(MUSIC_FILES.size()):
+			if index != track_index:
+				track_queue.append(index)
+		track_queue.shuffle()
+	play_track(track_queue.pop_front())
 
 func configure(settings: Dictionary) -> void:
 	effects_enabled = bool(settings.get("sound", true))

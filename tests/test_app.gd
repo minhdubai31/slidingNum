@@ -3,7 +3,7 @@ extends SceneTree
 var app
 var failures: int = 0
 var backups: Dictionary = {}
-const SAVES = ["user://session-v2.json", "user://profile.json", "user://custom_picture.png"]
+var SAVES = ["user://session-v2.json", "user://profile.json", "user://custom_picture.png"]
 
 func _initialize() -> void:
 	call_deferred("run")
@@ -41,6 +41,9 @@ func overview() -> void:
 	detail.save_png("res://artifacts/polish-preview.png")
 
 func run() -> void:
+	if DirAccess.dir_exists_absolute("user://custom_pictures"):
+		for file in DirAccess.get_files_at("user://custom_pictures"):
+			SAVES.append("user://custom_pictures/" + file)
 	for path in SAVES:
 		if FileAccess.file_exists(path):
 			backups[path] = FileAccess.get_file_as_bytes(path)
@@ -54,6 +57,13 @@ func run() -> void:
 	app.apply_preferences()
 	app.go("splash")
 	await capture("01-splash")
+	app.logo_clock = 0.0
+	var logo_stable := true
+	for sample in range(120):
+		app.animate_logo(0.02)
+		var rest: Vector2 = app.logo_node.get_parent().size * Vector2(0.5, 1.0)
+		logo_stable = logo_stable and app.logo_node.scale == Vector2.ONE and absf(app.logo_node.position.y - rest.y) <= 3.01
+	check(logo_stable, "Loading logo floats gently without bouncing or squash")
 	app.go("home")
 	await capture("02-home")
 	# Verify nested miniature/label controls do not consume card clicks.
@@ -84,6 +94,17 @@ func run() -> void:
 		check(app.screen == "levels", "Card accepts clicks over its thumbnail (screen: %s, position: %s)" % [app.screen, point])
 	app.begin_flow(false)
 	await capture("03-levels")
+	check(app.page.find_child("Level6", true, false) != null, "Numbers offers the 6x6 level")
+	app.page.find_child("Level6", true, false).pressed.emit()
+	await create_timer(0.2).timeout
+	check(app.screen == "game" and app.puzzle.dimension == 6 and app.puzzle.cells.size() == 36 and not app.photo_mode, "Selecting 6x6 starts a 35-tile number game")
+	var six_cells: Array[int] = app.puzzle.cells.duplicate()
+	app.save_session()
+	app.puzzle.reset(3)
+	app.load_session()
+	check(app.puzzle.dimension == 6 and app.puzzle.cells == six_cells, "6x6 number session restores its complete board")
+	await create_timer(1.5).timeout
+	await capture("21-numbers-six")
 	app.new_game(4)
 	await process_frame
 	await process_frame
@@ -99,9 +120,19 @@ func run() -> void:
 	app.audio._notification(NOTIFICATION_APPLICATION_FOCUS_IN)
 	app.apply_preferences()
 	await create_timer(0.12).timeout
-	check(app.audio.music.stream is AudioStreamOggVorbis and app.audio.music.stream.loop, "Background music is a looped imported Ogg")
+	check(app.audio.music.stream is AudioStreamOggVorbis and not app.audio.music.stream.loop, "Background music uses a playlist instead of looping one Ogg")
 	check(app.audio.music.stream.get_length() > 120, "Background music decodes full track")
 	check(app.audio.music.playing and app.audio.music.get_playback_position() > 0, "Music playback advances")
+	var first_track: int = app.audio.track_index
+	var heard: Dictionary = {first_track: true}
+	for i in range(5):
+		var previous_track: int = app.audio.track_index
+		app.audio.music.stop()
+		app.audio.music.finished.emit()
+		check(app.audio.track_index != previous_track and app.audio.music.playing, "Finished track advances without repeating immediately")
+		heard[app.audio.track_index] = true
+		check(app.audio.music.stream.get_length() > 10, "Additional soundtrack decodes successfully")
+	check(heard.size() == 3, "Playlist plays all three soundtracks")
 	for cue in ["button", "drop", "cancel", "undo", "redo", "hint", "restart", "win"]:
 		check(app.audio.effects[cue].get_length() > 0, "Imported SFX decodes: " + cue)
 	var animated = app.hint_button
@@ -192,10 +223,27 @@ func run() -> void:
 	check(app.puzzle.cells == original and app.puzzle.moves == 0, "Restart restores original shuffle")
 	app.begin_flow(true)
 	await capture("06-gallery")
-	var gallery_card := app.page.find_child("PhotoCard0", true, false) as Button
+	check(app.page.find_child("PickPicture", true, false) == null, "Topic selection does not expose the import button")
+	var gallery_card := app.page.find_child("TopicCard0", true, false) as Button
 	gallery_card.pressed.emit()
 	await create_timer(0.12).timeout
+	check(app.screen == "topic", "Topic card opens its picture list")
+	check(app.page.find_child("PickPicture", true, false) == null, "Built-in topic does not expose the import button")
+	await capture("06-topic")
+	var photo_card := app.page.find_child("PhotoCard0", true, false) as Button
+	photo_card.pressed.emit()
+	await create_timer(0.12).timeout
 	check(app.screen == "levels" and app.pending_picture == 0, "Full-bleed photo card opens the selected image level flow")
+	check(app.page.find_child("Level6", true, false) == null, "Pictures keeps only its original three levels")
+	app.back_action()
+	check(app.screen == "topic", "Level selection returns to its picture topic")
+	app.back_action()
+	check(app.screen == "gallery", "Picture topic returns to topic selection")
+	app.page.find_child("YourPictures", true, false).pressed.emit()
+	await create_timer(0.12).timeout
+	check(app.screen == "topic" and app.picture_topic == -1, "Personal topic opens its own picture list")
+	check(app.page.find_child("PickPicture", true, false) != null, "Import button is inside the personal topic")
+	await capture("06-your-pictures")
 	app.pending_picture = 1
 	app.new_game(3)
 	await capture("07-pictures")
@@ -277,6 +325,9 @@ func run() -> void:
 	app.on_completed()
 	check(app.profile.stats.pictures.wins == 1, "Duplicate completion ignored")
 	check(app.profile.daily_wins.has(app.today()), "Daily completion persisted")
+	check(app.profile.picture_best(app.picture_key(0), 3) == 42, "Winning records the exact picture and difficulty")
+	check(app.profile.picture_best(app.picture_key(0), 4) == 0, "Other difficulties remain incomplete")
+	check(app.profile.picture_best(app.picture_key(1), 3) == 0, "Other pictures remain incomplete")
 	await create_timer(1.4).timeout
 	check(app.screen == "result", "Completion opens result screen")
 	app.picture_index = 1
@@ -289,9 +340,57 @@ func run() -> void:
 	app.go("stats")
 	await capture("15-stats")
 	check(app.profile.achievements(true)[0], "First-win achievement unlocked")
+	app.profile.record_win(true, 60, 30, 3, "", app.picture_key(0))
+	check(app.profile.picture_best(app.picture_key(0), 3) == 42, "A slower completion preserves the best time")
+	app.profile.record_win(true, 31, 30, 3, "", app.picture_key(0))
+	app.profile.record_win(true, 95, 50, 4, "", app.picture_key(0))
+	var loaded_profile := SlideProfile.new()
+	loaded_profile.load_data()
+	check(loaded_profile.picture_best(app.picture_key(0), 3) == 31 and loaded_profile.picture_best(app.picture_key(0), 4) == 95, "Per-picture times survive profile reload independently by difficulty")
+	app.picture_topic = 0
+	app.go("topic")
+	await create_timer(0.8).timeout
+	var progress: Node = app.page.find_child("PictureProgress0", true, false)
+	check(app.page.find_child("PhotoCard0", true, false).size.x >= (app.content_width() - 12) / 2.0 - 1, "Progress badges preserve the full picture card width")
+	check(progress.get_node("Completed3").get_meta("completed") and progress.get_node("Completed4").get_meta("completed") and not progress.get_node("Completed5").get_meta("completed"), "Picture list shows each completed and uncompleted difficulty")
+	check(progress.get_node("Completed3/CrystalStar").material != null and progress.get_node("Completed5/CrystalStar").material == null, "Only earned crystal stars shimmer")
+	await capture("19-picture-progress")
+	app.pending_photo = true
+	app.pending_picture = 0
+	app.go("levels")
+	check(app.page.find_child("PictureBest3", true, false).text.contains("00:31"), "Level selection displays the picture's best time")
+	check(app.page.find_child("PictureBest5", true, false).text == "Chưa hoàn thành", "Uncompleted difficulty has an explicit empty state")
+	await capture("20-picture-bests")
+	var personal_before: int = app.personal_picture_ids().size()
 	app.import_picture(ProjectSettings.globalize_path("res://assets/kitten.png"))
-	check(app.screen == "levels" and app.pending_picture == -1, "Custom image routes to level selection")
+	var first_custom: int = app.pending_picture
+	var first_path: String = app.personal_picture_path(first_custom)
+	var first_bytes := FileAccess.get_file_as_bytes(first_path)
+	check(app.screen == "levels" and app.pending_picture < 0, "Custom image routes to level selection")
+	app.import_picture(ProjectSettings.globalize_path("res://assets/alpine.png"))
+	check(app.personal_picture_ids().size() == personal_before + 2, "Multiple imports are retained in the personal collection")
+	check(FileAccess.get_file_as_bytes(first_path) == first_bytes, "Importing a second picture preserves the first")
+	app.new_game(3)
+	var second_custom: int = app.picture_index
+	app.load_session()
+	check(app.picture_index == second_custom, "Saved game restores the selected personal picture")
+	app.back_action()
+	app.go("topic")
+	check(app.page.find_child("PhotoCard%d" % first_custom, true, false) != null, "Imported pictures appear in the personal topic")
+	app.page.find_child("PhotoCard%d" % first_custom, true, false).pressed.emit()
+	await create_timer(0.12).timeout
+	check(app.pending_picture == first_custom, "A previous personal picture can be selected again")
+	app.profile.record_win(true, 73, 20, 5, "", app.picture_key(first_custom))
+	check(app.profile.picture_best(app.picture_key(first_custom), 5) == 73 and app.profile.picture_best(app.picture_key(second_custom), 5) == 0, "Personal pictures have separate completion records")
 	check(app.selected_picture().get_width() == 1024, "Imported image square crop")
+	app.confirm_delete_picture(first_custom)
+	check(is_instance_valid(app.overlay) and FileAccess.file_exists(first_path), "Delete requires confirmation before removing a picture")
+	app.close_overlay()
+	app.delete_picture(first_custom)
+	check(not FileAccess.file_exists(first_path) and app.profile.picture_best(app.picture_key(first_custom), 5) == 0, "Deleting a picture removes its local copy and its records")
+	check(FileAccess.file_exists(app.personal_picture_path(second_custom)) and app.active_session, "Deleting another picture preserves the current game and other photos")
+	app.delete_picture(second_custom)
+	check(not app.active_session and not FileAccess.file_exists(app.SAVE_PATH), "Deleting the active picture removes its saved game")
 	root.content_scale_size = Vector2i(360, 780)
 	root.size = Vector2i(360, 780)
 	app.new_game(5)
@@ -307,7 +406,7 @@ func run() -> void:
 	for dimensions in [Vector2i(360, 780), Vector2i(390, 844), Vector2i(430, 900)]:
 		root.content_scale_size = dimensions
 		root.size = dimensions
-		for destination in ["home", "levels", "gallery", "themes", "game", "result", "settings", "stats", "help", "daily"]:
+		for destination in ["home", "levels", "gallery", "topic", "themes", "game", "result", "settings", "stats", "help", "daily"]:
 			app.go(destination)
 			await create_timer(0.12).timeout
 			var margin := app.page.get_node("Scroll/Margin") as Control
@@ -326,6 +425,11 @@ func run() -> void:
 	# Restore the user's data, leaving testing statistics out of the app.
 	root.remove_child(app)
 	app.free()
+	if DirAccess.dir_exists_absolute("user://custom_pictures"):
+		for file in DirAccess.get_files_at("user://custom_pictures"):
+			var path: String = "user://custom_pictures/" + file
+			if path not in SAVES:
+				SAVES.append(path)
 	for path in SAVES:
 		if backups.has(path):
 			var file := FileAccess.open(path, FileAccess.WRITE)
@@ -333,5 +437,5 @@ func run() -> void:
 			file.close()
 		elif FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
-	print("PASS: full app flow, two-option Home menu, imported icons/audio, button press/spring, silent dragging, placement/return sounds, looping music, mute/volume/focus, persistence, mobile layout" if failures == 0 else "FAILED: %d checks" % failures)
+	print("PASS: full app flow, two-option Home menu, imported icons/audio, button press/spring, silent dragging, placement/return sounds, music playlist, mute/volume/focus, persistence, mobile layout" if failures == 0 else "FAILED: %d checks" % failures)
 	quit(0 if failures == 0 else 1)

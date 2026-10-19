@@ -12,8 +12,8 @@ Game xếp số / xếp ảnh cho màn hình dọc, viết bằng Godot 4.7.2 v�
 
 1. Splash có logo, bàn xếp thu nhỏ và thanh tải.
 2. Trang chủ với Xếp số, Xếp ảnh, tiếp tục ván và các lối tắt.
-3. Chọn cấp độ 3 × 3 / 4 × 4 / 5 × 5.
-4. Chọn ảnh: 6 ảnh mẫu và nhập ảnh PNG/JPG/WebP riêng, cắt vuông ở giữa.
+3. Chọn cấp độ: Xếp số có 3 × 3 / 4 × 4 / 5 × 5 / 6 × 6; Xếp ảnh có 3 × 3 / 4 × 4 / 5 × 5.
+4. Chọn chủ đề ảnh → xem danh sách ảnh trong chủ đề → chọn cấp độ. Trên mỗi ảnh có cụm sao pha lê bo tròn xanh / vàng / đỏ ghi nhận hoàn thành 3×3 / 4×4 / 5×5, không kèm nhãn; mức chưa hoàn thành hiện sao mờ; màn chọn cấp độ hiển thị thời gian nhanh nhất riêng cho từng ảnh và từng mức. Chủ đề **Của bạn** chứa bộ sưu tập ảnh cá nhân và nút thêm ảnh PNG/JPG/WebP; mỗi ảnh được cắt vuông ở giữa và lưu riêng trên thiết bị. Có thể xóa từng ảnh bằng nút thùng rác; thao tác có xác nhận và chỉ xóa bản sao trong game cùng thành tích của ảnh.
 5. Màn chơi số và ảnh với kéo/chạm, thời gian, số bước, xem ảnh, gợi ý, hoàn tác và làm lại.
 6. Home/tạm dừng chỉ có **Tiếp tục** và **Về màn hình chính**; giữ nguyên ván khi quay về.
 7. Kết quả số/ảnh, kỷ lục thời gian, chơi tiếp hoặc chọn cấp độ.
@@ -47,7 +47,7 @@ Game xếp số / xếp ảnh cho màn hình dọc, viết bằng Godot 4.7.2 v�
 - `scripts/profile.gd`: cài đặt, thống kê và thành tích.
 - `scripts/backdrop.gd`: nền theo màn hình.
 - `assets/`: ảnh tạo cho dự án, SVG và font Nunito (giấy phép OFL đi kèm).
-- `artifacts/`: ảnh chụp các màn và `overview.png`; thư mục này không được Godot import vào game.
+- `artifacts/`: ảnh chụp các màn và `overview.png` được sinh cục bộ khi chạy kiểm thử hoặc công cụ chụp; không đưa vào Git và không được Godot import vào game. Chỉ `.gdignore` được lưu để giữ thư mục đầu ra khi clone.
 
 ## Icon, hiệu ứng nút và âm thanh
 
@@ -55,9 +55,9 @@ Icon điều khiển dùng SVG tải từ **Font Awesome Free 6.7.2**; các icon
 
 Nút có mặt chuyển sắc và gờ dưới, co nhẹ khi giữ rồi nảy về khi thả. Nhấn nhanh được chặn kích hoạt lặp trong lúc chuyển màn. Hiệu ứng động luôn bật; đây là một phần của thiết kế.
 
-Kéo ô không phát tiếng. Các hiệu ứng ngắn của **Kenney Interface Sounds** phản hồi khi đặt/trả ô, hoàn tác/phục hồi, dùng gợi ý và làm lại ván; mỗi thao tác có âm lượng/cao độ riêng. Tiếng thắng là một đoạn ngắn biên tập từ âm CC0 của Kenney, phát ở kênh riêng và giảm nhạc nền tạm thời. Nhạc nền **Exploration Theme — Cleyton Kauffman** phát lặp. Âm lượng nhạc và hiệu ứng chỉnh riêng; dừng khi ứng dụng mất focus. Bản ghi gỗ cũ giữ lại làm tài nguyên dự phòng. Nguồn và giấy phép ở `assets/SOURCES.md`.
+Kéo ô không phát tiếng. Các hiệu ứng ngắn của **Kenney Interface Sounds** phản hồi khi đặt/trả ô, hoàn tác/phục hồi, dùng gợi ý và làm lại ván; mỗi thao tác có âm lượng/cao độ riêng. Tiếng thắng là một đoạn ngắn biên tập từ âm CC0 của Kenney, phát ở kênh riêng và giảm nhạc nền tạm thời. Playlist nhạc nền gồm **Exploration Theme — Cleyton Kauffman**, **Calm Theme — pebonius** và **Waiting II — Kistol**, tự chuyển bài và không lặp liền cùng một bản. Âm lượng nhạc và hiệu ứng chỉnh riêng; dừng khi ứng dụng mất focus. Bản ghi gỗ cũ giữ lại làm tài nguyên dự phòng. Nguồn và giấy phép ở `assets/SOURCES.md`.
 
-Nút dùng shader bo góc với mặt satin, đế mỏng khoảng 1,8 px và ánh sáng chuyển nhẹ; nhấn/nhả và hover được nội suy mềm. Màn kết quả dùng nền tối có ánh vàng, thẻ thống kê chia hàng, huy hiệu NEW và chỉ hai nút Trang chủ / Chơi tiếp cùng hàng. Ô ảnh dùng khe 2,4 px so với 7 px của ô số (tại bàn rộng 390 px), có lớp bắt sáng mỏng được dựng ở độ phân giải cao để tránh viền gắt. Thẻ chọn ảnh phủ kín khung với nhãn dưới lớp tối chuyển sắc; thẻ chọn chất liệu không in số, có dấu chọn xanh ở góc. Ảnh tổng quan ở `artifacts/overview.png` và `artifacts/polish-preview.png`.
+Nút dùng shader bo góc với mặt satin, đế mỏng khoảng 1,8 px và ánh sáng chuyển nhẹ; nhấn/nhả và hover được nội suy mềm. Màn kết quả dùng nền tối có ánh vàng, thẻ thống kê chia hàng, huy hiệu NEW và chỉ hai nút Trang chủ / Chơi tiếp cùng hàng. Ô ảnh dùng khe 2,4 px so với 7 px của ô số (tại bàn rộng 390 px), có lớp bắt sáng mỏng được dựng ở độ phân giải cao để tránh viền gắt. Thẻ chọn ảnh phủ kín khung với nhãn dưới lớp tối chuyển sắc; thẻ chọn chất liệu không in số, có dấu chọn xanh ở góc. Chạy kiểm thử app để tạo lại ảnh tổng quan `artifacts/overview.png` và `artifacts/polish-preview.png`.
 
 ## Ngôn ngữ
 
@@ -74,8 +74,32 @@ $engine = "$env:LOCALAPPDATA\Programs\Godot\Godot_v4.7.2-stable_win64_console.ex
 
 Chụp toàn bộ màn hình theo kích thước và ngôn ngữ: `--script tools/capture_screens.gd -- <thư_mục> <vi|en> <rộng> <cao>` (sao lưu và khôi phục dữ liệu người chơi). `tools/art_preview.gd` xuất bảng xem trước vật liệu và icon.
 
-Kiểm thử logic tạo 120 bàn và kiểm tra parity, các bước hợp lệ, undo, phát hiện thắng và toàn bộ đường gợi ý. Kiểm thử app mô phỏng input thật, duyệt các màn, kiểm tra lưu/khôi phục, pause, restart, ảnh riêng, cài đặt, thống kê, thử thách ngày và bố cục 360 × 780. Kiểm thử app sao lưu và khôi phục dữ liệu người dùng; số liệu trên ảnh chụp kết quả/thống kê là dữ liệu kiểm thử.
+Kiểm thử logic tạo 160 bàn và kiểm tra parity, các bước hợp lệ, undo, phát hiện thắng và toàn bộ đường gợi ý. Kiểm thử app mô phỏng input thật, duyệt các màn, kiểm tra lưu/khôi phục, pause, restart, ảnh riêng, cài đặt, thống kê, thử thách ngày và bố cục 360 × 780. Kiểm thử app sao lưu và khôi phục dữ liệu người dùng; số liệu trên ảnh chụp kết quả/thống kê là dữ liệu kiểm thử.
 
 ## Phát hành mobile
+
+### Build plugin chọn ảnh Android
+
+`android/plugins/ImagePicker.gdap` cần file `ImagePicker.aar` nằm cùng thư mục. File `.aar` được tạo cục bộ và không lưu trong Git; sau khi clone repo cần build plugin trước khi mở Godot/export Android để tránh lỗi `Invalid plugin config file ImagePicker.gdap`.
+
+Trên Windows, cài JDK 17 trở lên và Android SDK Platform, rồi chạy từ thư mục dự án:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File android/plugin_src/build_aar.ps1
+```
+
+Script tìm JDK qua `JAVA_HOME` hoặc PATH; tìm SDK qua `ANDROID_HOME`, `ANDROID_SDK_ROOT`, hoặc `%LOCALAPPDATA%/Android/Sdk`. Có thể chỉ định trực tiếp:
+
+```powershell
+./android/plugin_src/build_aar.ps1 -JavaHome 'C:/path/to/jdk-17' -AndroidJar 'C:/path/to/Android/Sdk/platforms/android-35/android.jar'
+```
+
+Trên Linux/macOS:
+
+```bash
+ANDROID_JAR="$HOME/Android/Sdk/platforms/android-35/android.jar" bash android/plugin_src/build_aar.sh
+```
+
+Build thành công sẽ tạo `android/plugins/ImagePicker.aar`. Mở lại Godot và giữ `ImagePicker` bật trong preset Android. Build lại plugin khi sửa Java source.
 
 Dự án dùng Compatibility renderer, hỗ trợ touch và khóa hướng dọc. Chưa đóng gói APK/IPA hoặc đo hiệu năng trên điện thoại thật. Android cần Godot export templates khớp phiên bản, Android SDK và JDK; iOS cần macOS/Xcode. Cần kiểm tra file picker, haptic và vùng an toàn trên thiết bị trước khi phát hành.

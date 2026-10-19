@@ -2,7 +2,7 @@ extends SceneTree
 
 func _init() -> void:
 	var puzzle := SlidePuzzle.new()
-	for n in [3, 4, 5]:
+	for n in [3, 4, 5, 6]:
 		for trial in range(40):
 			puzzle.reset(n)
 			assert(not puzzle.solved(), "Shuffle must not start solved")
@@ -43,5 +43,5 @@ func _init() -> void:
 		assert(not puzzle.solved())
 		assert(puzzle.slide(n * n - 1))
 		assert(puzzle.solved())
-	print("PASS: 120 shuffled puzzles, parity, legal moves, undo, solved detection")
+	print("PASS: 160 shuffled puzzles, parity, legal moves, undo, solved detection")
 	quit()
