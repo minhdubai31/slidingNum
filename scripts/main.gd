@@ -1190,24 +1190,49 @@ func material_preview(theme_index: int, width: float) -> Control:
 	preview.custom_minimum_size = Vector2(width, width * 2.0 / 3.0)
 	preview.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	preview.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	var faces := Control.new()
+	faces.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	faces.texture_filter = preview.texture_filter
+	var finish := ShaderMaterial.new()
+	finish.shader = load("res://shaders/block.gdshader")
+	finish.set_shader_parameter("light_strength", 0.22)
+	finish.set_shader_parameter("shine", 0.07)
+	finish.set_shader_parameter("shadow_strength", 0.45)
+	faces.material = finish
+	preview.add_child(faces)
+	var cells: Array[Rect2] = []
 	preview.draw.connect(func():
 		var rect := Rect2(Vector2.ZERO, preview.size)
 		SlideArt.draw_frame(preview, rect, theme_index, 3, 2)
-		var u: float = rect.size.y / 390.0
-		var pad: float = 12.0 * u * 1.04
+		var u: float = rect.size.y / 260.0
+		var pad: float = 15.0 * u
 		var step := Vector2((rect.size.x - pad * 2) / 3.0, (rect.size.y - pad * 2) / 2.0)
-		var gutter: float = 2.2 * u * 3.0
+		var gutter: float = 7.0 * u
 		var tile := step - Vector2.ONE * gutter
 		var radius: float = tile.x * 0.105
+		finish.set_shader_parameter("block_size", tile)
+		finish.set_shader_parameter("corner", maxf(3.0, radius))
+		finish.set_shader_parameter("bevel", maxf(2.0, radius * 0.8))
+		cells.clear()
 		for i in range(6):
 			var origin: Vector2 = Vector2(pad, pad) + Vector2(i % 3, i / 3) * step + Vector2.ONE * gutter * 0.5
 			var cell := Rect2(origin, tile)
 			SlideArt.draw_slot(preview, cell, theme_index, radius)
 			if i == 5:
 				continue
-			SlideArt.draw_tile_shadow(preview, cell, radius, u * 2.0)
-			preview.draw_texture_rect(SlideArt.tile_texture(theme_index, i * 7 + 3), cell, false)
+			SlideArt.draw_tile_shadow(preview, cell, radius, u)
+			var side := StyleBoxFlat.new()
+			side.bg_color = Color(SlideArt.material(theme_index).side)
+			side.set_corner_radius_all(int(radius))
+			preview.draw_style_box(side, Rect2(cell.position + Vector2(0, 3.2 * u), cell.size))
+			cells.append(cell)
+		faces.queue_redraw()
 	)
+	faces.draw.connect(func():
+		for i in range(cells.size()):
+			faces.draw_texture_rect(SlideArt.face_texture(theme_index, (i + 1) * 7 + 3), cells[i], false)
+	)
+	preview.resized.connect(func(): preview.queue_redraw())
 	return preview
 
 func themes_screen() -> void:

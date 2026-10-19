@@ -45,7 +45,7 @@ static func grain_lines(rng: RandomNumberGenerator, width: float, height: float,
 			path = "M%.1f -6C%.1f %.1f %.1f %.1f %.1f %.1f" % [base, base + a, height * 0.3, base + b, height * 0.7, base + c, height + 6]
 		else:
 			path = "M-6 %.1fC%.1f %.1f %.1f %.1f %.1f %.1f" % [base, width * 0.3, base + a, width * 0.7, base + b, width + 6, base + c]
-		out += '<path d="%s" fill="none" stroke="#%s" stroke-opacity="%.3f" stroke-width="%.2f"/>' % [path, color, rng.randf_range(0.05, 0.17), rng.randf_range(0.35, 1.5)]
+		out += '<path d="%s" fill="none" stroke="#%s" stroke-opacity="%.3f" stroke-width="%.2f"/>' % [path, color, rng.randf_range(0.03, 0.08), rng.randf_range(2.5, 6)]
 	for i in range(4):
 		var base: float = rng.randf_range(0, width if vertical else height)
 		var wobble: float = rng.randf_range(-9, 9)
@@ -67,11 +67,12 @@ static func marble_veins(rng: RandomNumberGenerator, width: float, height: float
 			var next := point + Vector2(rng.randf_range(-6, 30), rng.randf_range(18, 42))
 			path += "Q%.1f %.1f %.1f %.1f" % [point.x + rng.randf_range(-16, 16), (point.y + next.y) * 0.5, next.x, next.y]
 			point = next
-		out += '<path d="%s" fill="none" stroke="#%s" stroke-opacity=".10" stroke-width="6"/>' % [path, color]
-		out += '<path d="%s" fill="none" stroke="#%s" stroke-opacity=".42" stroke-width="%.2f"/>' % [path, color, rng.randf_range(0.6, 1.3)]
+		out += '<path d="%s" fill="none" stroke="#%s" stroke-opacity=".05" stroke-width="14"/>' % [path, color]
+		out += '<path d="%s" fill="none" stroke="#%s" stroke-opacity=".07" stroke-width="5"/>' % [path, color]
+		out += '<path d="%s" fill="none" stroke="#%s" stroke-opacity=".14" stroke-width="1.6"/>' % [path, color]
 	for i in range(count + 2):
 		var p := Vector2(rng.randf_range(0, width), rng.randf_range(0, height))
-		out += '<path d="M%.1f %.1fq%.1f %.1f %.1f %.1f" fill="none" stroke="#%s" stroke-opacity=".25" stroke-width=".5"/>' % [p.x, p.y, rng.randf_range(-12, 12), rng.randf_range(4, 12), rng.randf_range(-20, 20), rng.randf_range(10, 26), color]
+		out += '<path d="M%.1f %.1fq%.1f %.1f %.1f %.1f" fill="none" stroke="#%s" stroke-opacity=".06" stroke-width="2"/>' % [p.x, p.y, rng.randf_range(-12, 12), rng.randf_range(4, 12), rng.randf_range(-20, 20), rng.randf_range(10, 26), color]
 	return out
 
 static func tile_detail(theme_id: int, variant: int, width: float, height: float) -> String:
@@ -84,7 +85,7 @@ static func tile_detail(theme_id: int, variant: int, width: float, height: float
 			if variant % 3 == 1:
 				var knot := Vector2(rng.randf_range(30, 98), rng.randf_range(30, 90))
 				for r in range(4):
-					out += '<ellipse cx="%.1f" cy="%.1f" rx="%.1f" ry="%.1f" fill="none" stroke="#%s" stroke-opacity=".13" stroke-width=".8"/>' % [knot.x, knot.y, 2.0 + r * 2.4, 4.5 + r * 4.0, m.grain]
+					out += '<ellipse cx="%.1f" cy="%.1f" rx="%.1f" ry="%.1f" fill="none" stroke="#%s" stroke-opacity=".05" stroke-width="2.2"/>' % [knot.x, knot.y, 2.0 + r * 2.4, 4.5 + r * 4.0, m.grain]
 			return out
 		2:
 			return '<ellipse cx="38" cy="14" rx="70" ry="34" fill="url(#gloss)" opacity=".85"/><ellipse cx="30" cy="22" rx="9" ry="4" fill="#ffffff" opacity=".9"/>'
@@ -107,23 +108,49 @@ static func tile_detail(theme_id: int, variant: int, width: float, height: float
 			return out
 	return ""
 
+# Path data for a rounded rectangle, so an edge ring can be cut with an inner outline.
+static func rrect_path(x: float, y: float, w: float, h: float, r: float) -> String:
+	return "M%.2f %.2fH%.2fA%.2f %.2f 0 0 1 %.2f %.2fV%.2fA%.2f %.2f 0 0 1 %.2f %.2fH%.2fA%.2f %.2f 0 0 1 %.2f %.2fV%.2fA%.2f %.2f 0 0 1 %.2f %.2fZ" % [x + r, y, x + w - r, r, r, x + w, y + r, y + h - r, r, r, x + w - r, y + h, x + r, r, r, x, y + h - r, y + r, r, r, x + r, y]
+
+
+# Stacked edge rings: each thin layer adds a little shade or light, so the curve fades into the face.
+static func edge_rings(width_max: float, layers: int, opacity: float, corner: float, width: float, height: float) -> String:
+	var out: String = ""
+	for i in range(layers):
+		var stroke: float = width_max - i * (width_max - 2.0) / maxf(1.0, layers - 1)
+		var inset: float = stroke * 0.5
+		out += '<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" rx="%.2f" fill="none" stroke="url(#bv)" stroke-opacity="%.3f" stroke-width="%.2f"/>' % [inset, inset, width - stroke, height - stroke, maxf(2.0, corner - inset), opacity, stroke]
+	return out
+
+# Flat face only: the block shader supplies the rounded edge and the light.
+static func face_texture(theme_id: int, variant: int = 0) -> Texture2D:
+	variant = variant % (4 if theme_id in [0, 1, 3] else 1)
+	var key: String = "face:%d:%d" % [theme_id, variant]
+	if cache.has(key):
+		return cache[key]
+	var m: Dictionary = material(theme_id)
+	var body: String = '<defs><linearGradient id="g" x1="0" y1="0" x2=".35" y2="1"><stop stop-color="#%s"/><stop offset="1" stop-color="#%s"/></linearGradient></defs>' % [m.top, m.bottom]
+	body += '<rect width="128" height="128" fill="url(#g)"/>'
+	body += tile_detail(theme_id, variant, 128, 128)
+	return svg_texture(key, svg_doc(128, 128, body), 2.0)
+
 static func tile_texture(theme_id: int, variant: int = 0) -> Texture2D:
 	variant = variant % (4 if theme_id in [0, 1, 3] else 1)
-	var key: String = "tile:%d:%d" % [theme_id, variant]
+	var key: String = "tile4:%d:%d" % [theme_id, variant]
 	if cache.has(key):
 		return cache[key]
 	var m: Dictionary = material(theme_id)
 	var face_alpha: String = ".9" if theme_id == 5 else "1"
-	var defs: String = '<defs><linearGradient id="g" x1="0" y1="0" x2=".35" y2="1"><stop stop-color="#%s"/><stop offset="1" stop-color="#%s"/></linearGradient><linearGradient id="gloss" x2=".15" y2="1"><stop stop-color="#ffffff" stop-opacity=".95"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient><linearGradient id="n" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#5fe3ff"/><stop offset="1" stop-color="#b56cff"/></linearGradient><clipPath id="c"><rect width="128" height="121" rx="16"/></clipPath></defs>' % [m.top, m.bottom]
+	var defs: String = '<defs><linearGradient id="g" x1="0" y1="0" x2=".35" y2="1"><stop stop-color="#%s"/><stop offset="1" stop-color="#%s"/></linearGradient><linearGradient id="gloss" x2=".15" y2="1"><stop stop-color="#ffffff" stop-opacity=".95"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient><linearGradient id="n" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#5fe3ff"/><stop offset="1" stop-color="#b56cff"/></linearGradient><linearGradient id="bv" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffffff"/><stop offset=".5" stop-color="#ffffff" stop-opacity="0.3"/><stop offset="1" stop-color="#1e1208"/></linearGradient><clipPath id="c"><rect width="128" height="121" rx="16"/></clipPath></defs>' % [m.top, m.bottom]
 	var body: String = defs
 	body += '<rect y="5" width="128" height="123" rx="17" fill="#%s"/>' % m.side
 	body += '<rect width="128" height="121" rx="16" fill="url(#g)" fill-opacity="%s"/>' % face_alpha
 	body += '<g clip-path="url(#c)">%s</g>' % tile_detail(theme_id, variant, 128, 121)
+	body += edge_rings(14.0, 8, 0.085, 16.0, 128.0, 121.0)
 	if theme_id == 7:
-		body += '<rect x="5" y="5" width="118" height="111" rx="12" fill="none" stroke="url(#n)" stroke-width="10" opacity=".16"/><rect x="5" y="5" width="118" height="111" rx="12" fill="none" stroke="url(#n)" stroke-width="5.5" opacity=".32"/><rect x="5" y="5" width="118" height="111" rx="12" fill="none" stroke="url(#n)" stroke-width="2.4"/><rect x="5" y="5" width="118" height="111" rx="12" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".7"/>'
+		body += '<rect x="5" y="5" width="118" height="111" rx="12" fill="none" stroke="url(#n)" stroke-width="10" opacity=".16"/><rect x="5" y="5" width="118" height="111" rx="12" fill="none" stroke="url(#n)" stroke-width="5.5" opacity=".32"/><rect x="5" y="5" width="118" height="111" rx="12" fill="none" stroke="url(#n)" stroke-width="2.4"/>'
 	else:
 		body += '<path d="M3 98V17Q3 3 17 3h94" fill="none" stroke="#ffffff" stroke-opacity="%s" stroke-width="3.2" stroke-linecap="round"/>' % (".38" if theme_id in [1, 4] else ".62")
-		body += '<path d="M3 98V17Q3 3 17 3h94" fill="none" stroke="#ffffff" stroke-opacity=".9" stroke-width=".9" stroke-linecap="round"/>'
 		body += '<path d="M12 118h100q13 0 13-13V24" fill="none" stroke="#1e1208" stroke-opacity=".16" stroke-width="3.5" stroke-linecap="round"/>'
 	return svg_texture(key, svg_doc(128, 128, body), 3.0)
 
@@ -151,7 +178,7 @@ static func frame_texture(theme_id: int, columns: int, rows: int) -> Texture2D:
 	if theme_id == 7:
 		body += '<rect x="1.4" y="1.4" width="%.1f" height="%.1f" rx="6" fill="none" stroke="url(#n)" stroke-width="4" opacity=".35"/><rect x="1.2" y="1.2" width="%.1f" height="%.1f" rx="6" fill="none" stroke="url(#n)" stroke-width="1.5"/>' % [w - 2.8, h - 2.8, w - 2.4, h - 2.4]
 	else:
-		body += '<rect x=".7" y=".7" width="%.1f" height="%.1f" rx="6.4" fill="none" stroke="#%s" stroke-opacity=".9" stroke-width="1.1"/>' % [w - 1.4, h - 1.4, m.rim]
+		body += '<rect x=".7" y=".7" width="%.1f" height="%.1f" rx="6.4" fill="none" stroke="#%s" stroke-opacity=".45" stroke-width="2.4"/>' % [w - 1.4, h - 1.4, m.rim]
 	body += '<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" rx="4.5" fill="#%s" fill-opacity="%s"/>' % [b, b, w - b * 2, h - b * 2, m.tray, ".85" if theme_id == 5 else "1"]
 	body += '<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" rx="4.5" fill="url(#t)"/>' % [b, b, w - b * 2, h - b * 2]
 	body += '<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" rx="4.8" fill="none" stroke="#%s" stroke-opacity=".55" stroke-width=".7"/>' % [b - 0.5, b - 0.5, w - b * 2 + 1, h - b * 2 + 1, m.rim if theme_id != 7 else "8e6bff"]
@@ -340,11 +367,7 @@ static func wood_plaque() -> Texture2D:
 	return svg_texture(key, svg_doc(w, h, body), 2.0)
 
 static func photo_bevel() -> Texture2D:
-	# Light catches the upper-left lip of each photo piece; the lower-right edge falls into shade.
-	var body: String = '<defs><linearGradient id="s" x1="0" y1="0" x2=".6" y2="1"><stop stop-color="#ffffff" stop-opacity=".16"/><stop offset=".35" stop-color="#ffffff" stop-opacity="0"/><stop offset=".8" stop-color="#1c0f06" stop-opacity="0"/><stop offset="1" stop-color="#1c0f06" stop-opacity=".16"/></linearGradient><clipPath id="c"><rect width="128" height="128" rx="11.5"/></clipPath></defs>'
-	body += '<g clip-path="url(#c)"><rect width="128" height="128" fill="url(#s)"/>'
-	body += '<path d="M2.2 116V13Q2.2 2.2 13 2.2h103" fill="none" stroke="#ffffff" stroke-opacity=".22" stroke-width="7" stroke-linecap="round"/>'
-	body += '<path d="M1.6 116V13Q1.6 1.6 13 1.6h103" fill="none" stroke="#ffffff" stroke-opacity=".75" stroke-width="1.8" stroke-linecap="round"/>'
-	body += '<path d="M12 126.2h103q11.2 0 11.2-11.2V12" fill="none" stroke="#1a0d05" stroke-opacity=".32" stroke-width="5" stroke-linecap="round"/>'
-	body += '<path d="M12 126.8h103q11.8 0 11.8-11.8V12" fill="none" stroke="#1a0d05" stroke-opacity=".45" stroke-width="1.4" stroke-linecap="round"/></g>'
-	return svg_texture("photo-bevel", svg_doc(128, 128, body), 4.0)
+	# A thin lit rim matching the photo atlas radius (10.5%); the picture stays untouched inside.
+	var body: String = '<defs><linearGradient id="pr" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffffff" stop-opacity=".7"/><stop offset=".45" stop-color="#ffffff" stop-opacity="0"/><stop offset=".7" stop-color="#1e1208" stop-opacity="0"/><stop offset="1" stop-color="#1e1208" stop-opacity=".35"/></linearGradient></defs>'
+	body += '<path fill-rule="evenodd" fill="url(#pr)" d="%s%s"/>' % [rrect_path(0, 0, 128, 128, 13.44), rrect_path(2.2, 2.2, 123.6, 123.6, 11.24)]
+	return svg_texture("photo-rim", svg_doc(128, 128, body), 4.0)

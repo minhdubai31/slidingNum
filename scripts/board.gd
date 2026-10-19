@@ -42,13 +42,79 @@ var font: Font = ThemeDB.fallback_font
 const CORNER = 0.105
 const CONFETTI = [Color("ff7a9c"), Color("ffcf3f"), Color("5ec8ff"), Color("6fd67a"), Color("b48cff"), Color("ff9a4a")]
 
+var tile_layer: Control
+var photo_layer: Control
+var number_layer: Control
+var block_material: ShaderMaterial
+var preview_layer: Control
+var preview_material: ShaderMaterial
+
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	resized.connect(func(): sync_positions())
+	# Tiles are drawn in their own layer so the lit-block shader only touches the pieces.
+	block_material = ShaderMaterial.new()
+	block_material.shader = load("res://shaders/block.gdshader")
+	tile_layer = make_layer(block_material)
+	tile_layer.draw.connect(func(): draw_tiles(tile_layer))
+	# Picture pieces are plain textures: the block shader samples UV over the whole atlas, so it cannot shade them.
+	photo_layer = make_layer(null)
+	photo_layer.draw.connect(func(): draw_photos(photo_layer))
+	preview_material = ShaderMaterial.new()
+	preview_material.shader = block_material.shader
+	preview_material.set_shader_parameter("ambient", 1.0)
+	preview_material.set_shader_parameter("light_strength", 0.0)
+	preview_material.set_shader_parameter("shine", 0.0)
+	preview_material.set_shader_parameter("shadow_strength", 0.0)
+	preview_layer = make_layer(preview_material)
+	preview_layer.draw.connect(func():
+		if preview and picture:
+			preview_layer.draw_texture_rect(picture, picture_rect(), false)
+	)
+	number_layer = make_layer(null)
+	number_layer.draw.connect(func(): draw_overlays(number_layer))
+	update_block_params()
+
+func make_layer(material: Material) -> Control:
+	var layer := Control.new()
+	layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layer.material = material
+	add_child(layer)
+	return layer
+
+func refresh() -> void:
+	queue_redraw()
+	if is_instance_valid(tile_layer):
+		update_block_params()
+		tile_layer.queue_redraw()
+		photo_layer.queue_redraw()
+		preview_layer.queue_redraw()
+		number_layer.queue_redraw()
+
+func update_block_params() -> void:
+	if block_material == null or puzzle == null:
+		return
+	preview_material.set_shader_parameter("block_size", picture_rect().size)
+	preview_material.set_shader_parameter("corner", 12.0 * unit())
+	var block: Vector2 = picture_rect().size if preview else Vector2.ONE * (tile_step() - tile_gap())
+	# Picture pieces already carry their corner rounding in the atlas, so the shader must match it exactly.
+	var ratio: float = 0.063 if photo_mode else CORNER
+	var radius: float = (12.0 * unit()) if preview else block.x * ratio
+	block_material.set_shader_parameter("block_size", block)
+	block_material.set_shader_parameter("corner", maxf(3.0, radius))
+	block_material.set_shader_parameter("bevel", maxf(2.0, radius * 0.8))
+	block_material.set_shader_parameter("ambient", 0.95 if photo_mode else 0.84)
+	block_material.set_shader_parameter("light_strength", 0.12 if photo_mode else 0.22)
+	block_material.set_shader_parameter("top_gloss", 0.0 if photo_mode else 0.0)
+	block_material.set_shader_parameter("desaturate", 0.0 if photo_mode else 0.0)
+	block_material.set_shader_parameter("shine", 0.45 if photo_mode else 0.07)
+	block_material.set_shader_parameter("shadow_strength", 0.3 if photo_mode else 0.45)
 
 func tile_step() -> float:
-	return (size.x - 24.0 * unit()) / puzzle.dimension
+	return (size.x - 30.0 * unit()) / puzzle.dimension
 
 func unit() -> float:
 	return size.x / 390.0
@@ -57,7 +123,7 @@ func tile_gap() -> float:
 	return (4.0 if photo_mode else 7.0) * unit()
 
 func target(index: int) -> Vector2:
-	return Vector2(12, 12) * unit() + Vector2(index % puzzle.dimension, index / puzzle.dimension) * tile_step()
+	return Vector2(15, 15) * unit() + Vector2(index % puzzle.dimension, index / puzzle.dimension) * tile_step()
 
 func sync_positions() -> void:
 	cancel_drag()
@@ -66,7 +132,7 @@ func sync_positions() -> void:
 		return
 	for i in range(puzzle.cells.size()):
 		positions[puzzle.cells[i]] = target(i)
-	queue_redraw()
+	refresh()
 
 func cancel_drag() -> void:
 	drag_id = -1
@@ -99,7 +165,7 @@ func _process(delta: float) -> void:
 		p["spin"] += p["spin_speed"] * delta
 		p["life"] -= delta
 	particles = particles.filter(func(p): return p["life"] > 0)
-	queue_redraw()
+	refresh()
 
 func _input(event: InputEvent) -> void:
 	if puzzle == null or locked or preview:
@@ -122,9 +188,9 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func press(point: Vector2, pointer: int) -> void:
-	if locked or preview or size.x < 24 or drag_id != -1 or not Rect2(Vector2(12, 12) * unit(), size - Vector2(24, 24) * unit()).has_point(point) or puzzle.solved():
+	if locked or preview or size.x < 24 or drag_id != -1 or not Rect2(Vector2(15, 15) * unit(), size - Vector2(30, 30) * unit()).has_point(point) or puzzle.solved():
 		return
-	var grid: Vector2i = Vector2i((point - Vector2(12, 12) * unit()) / tile_step())
+	var grid: Vector2i = Vector2i((point - Vector2(15, 15) * unit()) / tile_step())
 	var index: int = grid.y * puzzle.dimension + grid.x
 	if not puzzle.can_move(index):
 		return
@@ -185,17 +251,13 @@ func play_intro() -> void:
 	intro = true
 	clock = 0.0
 
-# Rounds every piece of the picture and lightly softens over-sharpened artwork so that
-# fine hair and foliage do not shimmer when minified onto small tiles.
+# Round picture corners by changing alpha only; preserve the original RGB pixels.
 func prepare_photo() -> void:
 	var image: Image = picture.get_image()
 	if image.is_compressed():
 		image.decompress()
 	image.clear_mipmaps()
 	image.convert(Image.FORMAT_RGBA8)
-	var full: Vector2i = image.get_size()
-	image.resize(int(full.x * 0.58), int(full.y * 0.58), Image.INTERPOLATE_CUBIC)
-	image.resize(full.x, full.y, Image.INTERPOLATE_BILINEAR)
 	var n: int = puzzle.dimension
 	var radius: int = maxi(2, int(float(image.get_width()) / n * CORNER))
 	for row in range(n):
@@ -235,82 +297,115 @@ func intro_scale(id: int) -> float:
 	var k: float = t - 1.0
 	return 1.0 + (s + 1.0) * k * k * k + s * k * k
 
-func _draw() -> void:
-	if puzzle == null:
-		return
+func picture_rect() -> Rect2:
 	var u: float = unit()
-	if not frameless:
-		SlideArt.draw_frame(self, Rect2(Vector2.ZERO, size), theme_id)
-	var step: float = tile_step()
 	var gutter: float = tile_gap()
-	var tile_size: Vector2 = Vector2.ONE * (step - gutter)
-	var radius: float = maxf(3.0, tile_size.x * CORNER)
-	if preview and picture:
-		var full := Rect2(Vector2(12, 12) * u + Vector2.ONE * gutter * 0.5, size - Vector2(24, 24) * u - Vector2.ONE * gutter)
-		draw_style_box(rounded(Color(0, 0, 0, 0.3), radius), full)
-		draw_texture_rect(picture, full, false)
-		draw_texture_rect(SlideArt.photo_bevel(), full, false)
-		return
-	var slot_theme: int = theme_id
-	for i in range(puzzle.cells.size()):
-		SlideArt.draw_slot(self, Rect2(target(i) + Vector2.ONE * gutter * 0.5, tile_size), slot_theme, radius)
+	return Rect2(Vector2(15, 15) * u + Vector2.ONE * gutter * 0.5, size - Vector2(30, 30) * u - Vector2.ONE * gutter)
+
+# Each visible piece with its (possibly animated) rectangle, in draw order: the dragged piece last.
+func tile_rects() -> Array:
+	var gutter: float = tile_gap()
+	var tile_size: Vector2 = Vector2.ONE * (tile_step() - gutter)
 	var order: Array[int] = []
 	for i in range(puzzle.cells.size()):
 		if puzzle.cells[i] != 0 and puzzle.cells[i] != drag_id:
 			order.append(i)
 	if drag_id != -1:
 		order.append(puzzle.cells.find(drag_id))
+	var result: Array = []
 	for i in order:
 		var id: int = puzzle.cells[i]
 		var pos: Vector2 = positions.get(id, target(i))
 		if not reduced_motion and celebration >= 0.0 and celebration < 1.0:
-			pos.y -= sin(clampf((celebration - float(id) * 0.022) * 6.0, 0, PI)) * 9.0 * u
+			pos.y -= sin(clampf((celebration - float(id) * 0.022) * 6.0, 0, PI)) * 9.0 * unit()
 		var rect := Rect2(pos + Vector2.ONE * gutter * 0.5, tile_size)
 		var grow: float = intro_scale(id)
 		if id == drag_id:
 			grow *= 1.03
 		elif landing.has(id) and not reduced_motion:
 			grow *= 1.0 + sin(float(landing[id]) / 0.32 * PI) * 0.035
-		if not is_equal_approx(grow, 1.0):
-			rect = Rect2(rect.get_center() - rect.size * grow * 0.5, rect.size * grow)
 		if grow <= 0.02:
 			continue
-		SlideArt.draw_tile_shadow(self, rect, radius, u, 1.6 if id == drag_id else 1.0)
-		if photo_mode and picture:
-			draw_photo_tile(rect, id, radius, u)
-		else:
-			draw_texture_rect(SlideArt.tile_texture(theme_id, id * 7 + 3), rect, false)
-			if not hide_numbers:
-				SlideArt.draw_number(self, rect, theme_id, id, font, int(step * (0.42 if puzzle.dimension < 5 else 0.4)), u)
-		if landing.has(id) and not reduced_motion:
-			draw_style_box(rounded(Color(1, 0.96, 0.82, sin(float(landing[id]) / 0.32 * PI) * 0.16), radius), rect)
-		if id == hint_tile and clock < hint_until:
-			var glow := rounded(Color(1, 0.84, 0.2, 0.14 + sin(clock * 8) * 0.08), radius)
-			glow.border_color = Color("ffe768")
-			glow.set_border_width_all(int(maxf(2, 3 * u)))
-			glow.shadow_color = Color(1, 0.85, 0.2, 0.45 + sin(clock * 8) * 0.2)
-			glow.shadow_size = int(10 * u)
-			draw_style_box(glow, rect)
+		if not is_equal_approx(grow, 1.0):
+			rect = Rect2(rect.get_center() - rect.size * grow * 0.5, rect.size * grow)
+		result.append({"id": id, "rect": rect, "index": i})
+	return result
+
+func _draw() -> void:
+	if puzzle == null:
+		return
+	var u: float = unit()
+	if not frameless:
+		SlideArt.draw_frame(self, Rect2(Vector2.ZERO, size), theme_id)
+	if preview:
+		return
+	var step: float = tile_step()
+	var gutter: float = tile_gap()
+	var tile_size: Vector2 = Vector2.ONE * (step - gutter)
+	var radius: float = maxf(3.0, tile_size.x * CORNER)
+	for i in range(puzzle.cells.size()):
+		SlideArt.draw_slot(self, Rect2(target(i) + Vector2.ONE * gutter * 0.5, tile_size), theme_id, radius)
+	# Shadow and thickness sit under each lit face.
+	var side := Color("2b1a0f") if photo_mode else Color(SlideArt.material(theme_id).side)
+	for entry in tile_rects():
+		var rect: Rect2 = entry.rect
+		SlideArt.draw_tile_shadow(self, rect, radius, u, 1.6 if entry.id == drag_id else 1.0)
+		draw_style_box(rounded(side, radius), Rect2(rect.position + Vector2(0, 3.2 * u), rect.size))
+
+func draw_tiles(layer: Control) -> void:
+	if puzzle == null or (photo_mode and picture) or preview:
+		return
+	for entry in tile_rects():
+		layer.draw_texture_rect(SlideArt.face_texture(theme_id, entry.id * 7 + 3), entry.rect, false)
+
+# Photo pieces: the rounded corners are already in the atlas; a thin lit rim is laid over each piece.
+func draw_photos(layer: Control) -> void:
+	if puzzle == null or not picture:
+		return
+	if preview:
+		# The full image is drawn by preview_layer with a rounded alpha mask.
+		return
+	if not photo_mode:
+		return
+	var image_step: Vector2 = picture.get_size() / float(puzzle.dimension)
+	for entry in tile_rects():
+		var index: int = entry.id - 1
+		var source := Rect2(Vector2(index % puzzle.dimension, index / puzzle.dimension) * image_step, image_step)
+		layer.draw_texture_rect_region(photo_atlas if photo_atlas else picture, entry.rect, source)
+		layer.draw_texture_rect(SlideArt.photo_bevel(), entry.rect, false, Color(1, 1, 1, 0.25))
+
+func draw_overlays(layer: Control) -> void:
+	if puzzle == null:
+		return
+	var u: float = unit()
+	var step: float = tile_step()
+	var radius: float = maxf(3.0, (step - tile_gap()) * CORNER)
+	if not preview:
+		for entry in tile_rects():
+			var rect: Rect2 = entry.rect
+			var id: int = entry.id
+			if photo_mode and picture:
+				if show_numbers:
+					var badge := Rect2(rect.position + Vector2(5, 5) * u, Vector2(26, 24) * u)
+					layer.draw_style_box(rounded(Color(0.12, 0.08, 0.05, 0.68), 8 * u), badge)
+					layer.draw_string(font, badge.position + Vector2(0, 18 * u), str(id), HORIZONTAL_ALIGNMENT_CENTER, badge.size.x, int(15 * u), Color.WHITE)
+			elif not hide_numbers:
+				SlideArt.draw_number(layer, rect, theme_id, id, font, int(step * (0.42 if puzzle.dimension < 5 else 0.4)), u)
+			if landing.has(id) and not reduced_motion:
+				layer.draw_style_box(rounded(Color(1, 0.96, 0.82, sin(float(landing[id]) / 0.32 * PI) * 0.16), radius), rect)
+			if id == hint_tile and clock < hint_until:
+				var glow := rounded(Color(1, 0.84, 0.2, 0.14 + sin(clock * 8) * 0.08), radius)
+				glow.border_color = Color("ffe768")
+				glow.set_border_width_all(int(maxf(2, 3 * u)))
+				glow.shadow_color = Color(1, 0.85, 0.2, 0.45 + sin(clock * 8) * 0.2)
+				glow.shadow_size = int(10 * u)
+				layer.draw_style_box(glow, rect)
 	for p in particles:
 		var color: Color = p["color"]
 		color.a = minf(p["life"] * 1.5, 1.0)
-		draw_set_transform(p["position"], p["spin"])
+		layer.draw_set_transform(p["position"], p["spin"])
 		match int(p["shape"]):
-			0: draw_rect(Rect2(-3, -6, 6, 12), color)
-			1: draw_circle(Vector2.ZERO, 4, color)
-			_: draw_colored_polygon(PackedVector2Array([Vector2(0, -6), Vector2(1.8, -1.8), Vector2(6, 0), Vector2(1.8, 1.8), Vector2(0, 6), Vector2(-1.8, 1.8), Vector2(-6, 0), Vector2(-1.8, -1.8)]), color)
-	draw_set_transform(Vector2.ZERO)
-
-func draw_photo_tile(rect: Rect2, id: int, radius: float, u: float) -> void:
-	# A thin darker body under the picture face gives each piece visible thickness.
-	var lip: float = maxf(1.5, 3.0 * u * clampf(rect.size.x / 110.0, 0.55, 1.0))
-	draw_style_box(rounded(Color("2b1a0f"), radius), rect)
-	var face := Rect2(rect.position, rect.size - Vector2(0, lip))
-	var image_step: Vector2 = picture.get_size() / float(puzzle.dimension)
-	var source := Rect2(Vector2((id - 1) % puzzle.dimension, (id - 1) / puzzle.dimension) * image_step, image_step)
-	draw_texture_rect_region(photo_atlas if photo_atlas else picture, face, source)
-	draw_texture_rect(SlideArt.photo_bevel(), face, false)
-	if show_numbers:
-		var badge := Rect2(face.position + Vector2(5, 5) * u, Vector2(26, 24) * u)
-		draw_style_box(rounded(Color(0.12, 0.08, 0.05, 0.68), 8 * u), badge)
-		draw_string(font, badge.position + Vector2(0, 18 * u), str(id), HORIZONTAL_ALIGNMENT_CENTER, badge.size.x, int(15 * u), Color.WHITE)
+			0: layer.draw_rect(Rect2(-3, -6, 6, 12), color)
+			1: layer.draw_circle(Vector2.ZERO, 4, color)
+			_: layer.draw_colored_polygon(PackedVector2Array([Vector2(0, -6), Vector2(1.8, -1.8), Vector2(6, 0), Vector2(1.8, 1.8), Vector2(0, 6), Vector2(-1.8, 1.8), Vector2(-6, 0), Vector2(-1.8, -1.8)]), color)
+	layer.draw_set_transform(Vector2.ZERO)
