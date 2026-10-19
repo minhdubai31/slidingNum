@@ -1,4 +1,4 @@
-# Slide Puzzle · MVP 0.5
+# Slide Puzzle · 0.7
 
 Game xếp số / xếp ảnh cho màn hình dọc, viết bằng Godot 4.7.2 và GDScript. Giao diện tiếng Việt, phong cách gỗ nổi và phong cảnh ấm áp.
 
@@ -18,7 +18,7 @@ Game xếp số / xếp ảnh cho màn hình dọc, viết bằng Godot 4.7.2 v�
 6. Home/tạm dừng chỉ có **Tiếp tục** và **Về màn hình chính**; giữ nguyên ván khi quay về.
 7. Kết quả số/ảnh, kỷ lục thời gian, chơi tiếp hoặc chọn cấp độ.
 8. Chọn 8 giao diện: gỗ cổ điển, gỗ tối, gốm, cẩm thạch, kim loại, kính, đất sét, neon.
-9. Cài đặt hiệu ứng âm thanh, nhạc nền, âm lượng riêng, rung, hiệu ứng động, số gợi ý trên ảnh và xóa dữ liệu có xác nhận.
+9. Cài đặt chia nhóm (Âm thanh / Trò chơi / Khác): hiệu ứng âm thanh, nhạc nền, âm lượng riêng, rung, hiệu ứng động, số gợi ý trên ảnh và xóa dữ liệu có xác nhận.
 10. Thống kê riêng cho xếp số/xếp ảnh và 4 thành tích mở theo kết quả thật.
 11. Hướng dẫn có ví dụ bàn gần hoàn thành.
 12. Thử thách hằng ngày: bàn 3 × 3 cố định theo ngày trên thiết bị và lịch hoàn thành 7 ngày.
@@ -36,7 +36,10 @@ Game xếp số / xếp ảnh cho màn hình dọc, viết bằng Godot 4.7.2 v�
 ## Cấu trúc
 
 - `scripts/main.gd`: điều hướng, màn hình, tương tác UI, lưu ván và âm thanh.
-- `scripts/ui.gd`: font, nút, icon SVG, texture ô và bảng màu.
+- `scripts/ui.gd`: font, nút, icon, chip và ô icon màu.
+- `scripts/art.gd`: vật liệu ô/khung dựng bằng SVG (vân gỗ, gốm, cẩm thạch, kim loại xước, kính mờ, đất sét, neon), icon màu vẽ riêng, cành nguyệt quế, bảng gỗ logo.
+- `scripts/i18n.gd`: đa ngôn ngữ (Tiếng Việt, English). Chuỗi tiếng Việt là khóa; thêm ngôn ngữ mới bằng một bảng ánh xạ.
+- `scripts/switch.gd`: công tắc bật/tắt có núm trượt.
 - `scripts/animated_button.gd`: hiệu ứng nhấn lún, bật nảy và hover; tôn trọng cài đặt giảm chuyển động.
 - `scripts/audio.gd`: tiếng nút, kéo/đặt/trả ô, hoàn thành, nhạc lặp, âm lượng và xử lý focus.
 - `scripts/board.gd`: cảm ứng, kéo ô, animation, bo góc ảnh và hiệu ứng thắng.
@@ -56,6 +59,10 @@ Tiếng kéo và đặt/trả ô dùng bản ghi **Board Game Wood Piece Slide �
 
 Nút dùng shader bo góc với mặt satin, đế mỏng khoảng 1,8 px và ánh sáng chuyển nhẹ; nhấn/nhả và hover được nội suy mềm. Màn kết quả dùng nền tối có ánh vàng, thẻ thống kê chia hàng, huy hiệu NEW và chỉ hai nút Trang chủ / Chơi tiếp cùng hàng. Ô ảnh dùng khe 2,4 px so với 7 px của ô số (tại bàn rộng 390 px), có lớp bắt sáng mỏng được dựng ở độ phân giải cao để tránh viền gắt. Thẻ chọn ảnh phủ kín khung với nhãn dưới lớp tối chuyển sắc; thẻ chọn chất liệu không in số, có dấu chọn xanh ở góc. Ảnh tổng quan ở `artifacts/overview.png` và `artifacts/polish-preview.png`.
 
+## Ngôn ngữ
+
+Mặc định theo ngôn ngữ hệ thống (vi → Tiếng Việt, còn lại English); đổi trong Cài đặt → Ngôn ngữ. Nhãn dài được tự thu nhỏ để không xuống hàng sai.
+
 ## Kiểm thử
 
 ```powershell
@@ -64,6 +71,8 @@ $engine = "$env:LOCALAPPDATA\Programs\Godot\Godot_v4.7.2-stable_win64_console.ex
 & $engine --headless --path . --script tests/test_puzzle.gd
 & $engine --path . --script tests/test_app.gd --quit-after 1800 -- --test-mode
 ```
+
+Chụp toàn bộ màn hình theo kích thước và ngôn ngữ: `--script tools/capture_screens.gd -- <thư_mục> <vi|en> <rộng> <cao>` (sao lưu và khôi phục dữ liệu người chơi). `tools/art_preview.gd` xuất bảng xem trước vật liệu và icon.
 
 Kiểm thử logic tạo 120 bàn và kiểm tra parity, các bước hợp lệ, undo, phát hiện thắng và toàn bộ đường gợi ý. Kiểm thử app mô phỏng input thật, duyệt các màn, kiểm tra lưu/khôi phục, pause, restart, ảnh riêng, cài đặt, thống kê, thử thách ngày và bố cục 360 × 780. Kiểm thử app sao lưu và khôi phục dữ liệu người dùng; số liệu trên ảnh chụp kết quả/thống kê là dữ liệu kiểm thử.
 

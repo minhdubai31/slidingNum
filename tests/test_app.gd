@@ -50,6 +50,8 @@ func run() -> void:
 	await process_frame
 	app.active_session = false
 	app.profile = SlideProfile.new()
+	app.profile.settings.language = "vi"
+	app.apply_preferences()
 	app.go("splash")
 	await capture("01-splash")
 	app.go("home")
@@ -199,7 +201,7 @@ func run() -> void:
 	await capture("07-pictures")
 	var picture_gap: float = app.board.tile_gap()
 	app.board.photo_mode = false
-	check(picture_gap < app.board.tile_gap() * 0.5, "Picture gaps are substantially narrower than number gaps")
+	check(picture_gap < app.board.tile_gap() * 0.65, "Picture gaps are narrower than number gaps")
 	app.board.photo_mode = true
 	check(SlideUI.photo_finish_texture() != null, "Each photo tile has a beveled reflective finish")
 	# A near-solved visual fixture makes picture seams and the bevel easy to inspect.
@@ -275,7 +277,7 @@ func run() -> void:
 	app.on_completed()
 	check(app.profile.stats.pictures.wins == 1, "Duplicate completion ignored")
 	check(app.profile.daily_wins.has(app.today()), "Daily completion persisted")
-	await create_timer(1.0).timeout
+	await create_timer(1.4).timeout
 	check(app.screen == "result", "Completion opens result screen")
 	app.picture_index = 1
 	app.go("result")

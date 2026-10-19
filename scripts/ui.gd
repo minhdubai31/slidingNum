@@ -7,19 +7,9 @@ const CREAM = Color("fff8eb")
 const GREEN = Color("2dc52e")
 const BLUE = Color("168cff")
 const THEME_NAMES = ["Gỗ cổ điển", "Gỗ tối", "Gốm sứ", "Đá cẩm thạch", "Kim loại", "Kính mờ", "Đất sét", "Neon"]
-const PALETTES = [
-	["f9d697", "e8aa5f", "b66d2d", "513017"],
-	["a76a3b", "724326", "442717", "f9dfb0"],
-	["fffef6", "e4dfd2", "b9ac98", "5c554a"],
-	["f0f1f4", "c7cbd3", "9199a6", "4a5361"],
-	["b9bdc5", "737b87", "464e5c", "ffffff"],
-	["a6e3f2", "5eafd3", "3d83a3", "204c69"],
-	["f4b4bc", "d98194", "b95673", "773951"],
-	["292454", "14122c", "7164ef", "7feaff"]]
 static var icons: Dictionary = {}
 static var tiles: Dictionary = {}
 static var fonts: Dictionary = {}
-static var photo_finish: Texture2D
 static var animations_enabled: bool = true
 static var click_feedback: Callable
 
@@ -46,9 +36,12 @@ static func panel(color: Color = CREAM, radius: int = 22, bevel: bool = true) ->
 		s.shadow_offset = Vector2(0, 2)
 	return s
 
+static func t(value: String) -> String:
+	return SlideI18n.t(value)
+
 static func text(value: String, font_size: int = 18, color: Color = INK, bold: bool = false) -> Label:
 	var l := Label.new()
-	l.text = value
+	l.text = t(value)
 	l.add_theme_font_size_override("font_size", font_size)
 	l.add_theme_color_override("font_color", color)
 	if bold:
@@ -59,7 +52,7 @@ static func text(value: String, font_size: int = 18, color: Color = INK, bold: b
 static func action(value: String, callback: Callable, primary: bool = false, glyph: String = "") -> Button:
 	var b := SlideButton.new()
 	b.primary = primary
-	b.text = value
+	b.text = t(value)
 	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER if value.is_empty() else HORIZONTAL_ALIGNMENT_LEFT
 	b.custom_minimum_size.y = 58
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -98,24 +91,59 @@ static func round_action(glyph: String, callback: Callable, diameter: float = 46
 	for state in ["normal", "hover", "pressed", "disabled"]:
 		var empty := StyleBoxEmpty.new()
 		b.add_theme_stylebox_override(state, empty)
+	b.add_theme_color_override("icon_disabled_color", Color(1, 1, 1, 0.32))
 	return b
 
+static func chip(value: String, background: Color, foreground: Color, font_size: int = 13) -> PanelContainer:
+	var pill := PanelContainer.new()
+	pill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var skin := panel(background, 12, false)
+	skin.content_margin_left = 11
+	skin.content_margin_right = 11
+	skin.content_margin_top = 2
+	skin.content_margin_bottom = 3
+	pill.add_theme_stylebox_override("panel", skin)
+	pill.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	pill.add_child(text(value, font_size, foreground, true))
+	return pill
+
+# A glossy coloured rounded square holding a white glyph, used by lists and achievements.
+static func badge_icon(texture: Texture2D, color: Color, length: float = 46, muted: bool = false) -> PanelContainer:
+	var square := PanelContainer.new()
+	square.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	square.custom_minimum_size = Vector2.ONE * length
+	square.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var tint: Color = color if not muted else Color("c9c0b2")
+	var skin := panel(tint, int(length * 0.28), false)
+	skin.set_content_margin_all(length * 0.2)
+	skin.border_color = tint.lightened(0.28)
+	skin.border_width_top = 2
+	skin.shadow_color = Color(tint.darkened(0.45), 0.35)
+	skin.shadow_size = 3
+	skin.shadow_offset = Vector2(0, 2)
+	square.add_theme_stylebox_override("panel", skin)
+	var glyph := TextureRect.new()
+	glyph.texture = texture
+	glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	glyph.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	square.add_child(glyph)
+	return square
+
 static func photo_finish_texture() -> Texture2D:
-	if photo_finish:
-		return photo_finish
-	var svg: String = '<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 128 128"><defs><linearGradient id="s" x1="0" y1="0" x2=".7" y2="1"><stop stop-color="#ffffff" stop-opacity=".035"/><stop offset=".45" stop-color="#ffffff" stop-opacity="0"/><stop offset="1" stop-color="#281a12" stop-opacity=".025"/></linearGradient><clipPath id="c"><rect x=".5" y=".5" width="127" height="127" rx="8"/></clipPath></defs><g clip-path="url(#c)"><rect width="128" height="128" rx="8" fill="url(#s)"/><path d="M2 118V9Q2 2 9 2h109" fill="none" stroke="#fffdf7" stroke-opacity=".11" stroke-width="6" stroke-linecap="round"/><path d="M2 118V9Q2 2 9 2h109" fill="none" stroke="#fffdf7" stroke-opacity=".17" stroke-width="3" stroke-linecap="round"/><path d="M1.6 118V9Q1.6 1.6 9 1.6h109" fill="none" stroke="#fffdf7" stroke-opacity=".38" stroke-width="1" stroke-linecap="round"/><path d="M10 126h109q7 0 7-7V10" fill="none" stroke="#291a10" stroke-opacity=".19" stroke-width="4" stroke-linecap="round"/><path d="M10 126.3h109q7.3 0 7.3-7.3V10" fill="none" stroke="#291a10" stroke-opacity=".28" stroke-width="1" stroke-linecap="round"/></g></svg>'
-	var image := Image.new()
-	image.load_svg_from_string(svg)
-	photo_finish = ImageTexture.create_from_image(image)
-	return photo_finish
+	return SlideArt.photo_bevel()
+
 static func icon(name: String, color: String = "493929") -> Texture2D:
 	var key: String = name + color
 	if icons.has(key):
 		return icons[key]
-	if name in ["bulb", "trophy", "palette", "calendar", "star", "stats"] and color not in ["ffffff", "fff8eb"]:
-		var texture: Texture2D = load("res://assets/third_party/fluent/%s.png" % name)
-		icons[key] = texture
-		return texture
+	var art: Dictionary = {"bulb": "bulb", "trophy": "trophy", "palette": "palette", "calendar": "calendar", "stats": "chart", "feet": "feet", "gift": "gift"}
+	if art.has(name) and color not in ["ffffff", "fff8eb"]:
+		icons[key] = SlideArt.icon(art[name])
+		return icons[key]
+	if name == "star" and color not in ["ffffff", "fff8eb"]:
+		icons[key] = load("res://assets/third_party/fluent/star.png")
+		return icons[key]
 	var colored: Dictionary = {"bulb": "1f4a1", "trophy": "1f3c6", "calendar": "1f4c5", "palette": "1f3a8", "stats": "1f4ca", "star": "2b50", "bolt": "26a1"}
 	var solid: Dictionary = {"back": "chevron-left", "chevron": "chevron-right", "play": "play", "pause": "pause", "home": "house", "restart": "rotate-left", "shuffle": "shuffle", "eye": "eye", "bulb": "lightbulb", "undo": "arrow-rotate-left", "clock": "stopwatch", "steps": "shoe-prints", "grid": "table-cells", "stats": "chart-simple", "trophy": "trophy", "star": "star", "calendar": "calendar-days", "settings": "gear", "palette": "palette", "sound": "volume-high", "music": "music", "check": "check", "help": "circle-question", "image": "image", "close": "xmark", "lock": "lock", "leaf": "leaf", "bolt": "bolt", "trash": "trash-can", "vibrate": "mobile-screen-button", "toggle_on": "toggle-on", "toggle_off": "toggle-off", "info": "circle-info"}
 	var use_color: bool = colored.has(name) and color != "ffffff" and color != "fff8eb"
@@ -140,38 +168,4 @@ static func icon(name: String, color: String = "493929") -> Texture2D:
 		canvas.resize(44, 44, Image.INTERPOLATE_LANCZOS)
 	var texture := ImageTexture.create_from_image(canvas)
 	icons[key] = texture
-	return texture
-static func tile_texture(theme_id: int) -> Texture2D:
-	if tiles.has(theme_id):
-		return tiles[theme_id]
-	var p: Array = PALETTES[theme_id]
-	var detail: String = ""
-	if theme_id < 2:
-		for i in range(24):
-			var x: float = 2.0 + i * 5.4
-			detail += '<path d="M%.1f 0C%.1f 26 %.1f 39 %.1f 64S%.1f 101 %.1f 128" stroke="#673513" stroke-opacity=".085" stroke-width=".55" fill="none"/>' % [x, x-3, x+4, x, x-4, x+1]
-		detail += '<path d="M34 0q-8 35 0 64t0 64M94 0q7 38-1 72t0 56" stroke="#fff2c9" stroke-opacity=".21" stroke-width="1.2" fill="none"/>'
-	elif theme_id == 2:
-		detail = '<ellipse cx="34" cy="20" rx="64" ry="34" fill="url(#gloss)" opacity=".7"/>'
-	elif theme_id == 3:
-		for offset in [0, 43, 87]:
-			detail += '<path d="M%d-15C%d 14 %d 35 %d 51S%d 82 %d 145" stroke="#717988" stroke-opacity=".11" stroke-width="7" fill="none"/>' % [offset,offset+44,offset-19,offset+15,offset+38,offset-5]
-			detail += '<path d="M%d-15C%d 14 %d 35 %d 51S%d 82 %d 145" stroke="#697584" stroke-opacity=".28" stroke-width="1.2" fill="none"/>' % [offset,offset+44,offset-19,offset+15,offset+38,offset-5]
-		detail += '<path d="M0 80q35-12 58-47m-4 41q30 6 74-9" stroke="#9da1aa" stroke-opacity=".27" stroke-width=".7" fill="none"/>'
-	elif theme_id == 4:
-		for i in range(60):
-			detail += '<path d="M0 %sH128" stroke="#ffffff" stroke-opacity=".075" stroke-width=".35"/>' % (i*2.1)
-		detail += '<path d="M-20 100 58-20H97L15 148Z" fill="url(#gloss)" opacity=".22"/>'
-	elif theme_id == 5:
-		detail = '<path d="M-15 115 71-10H103L18 140Z" fill="#ffffff" opacity=".14"/><path d="M6 0H122V36Q63 19 6 65Z" fill="url(#gloss)" opacity=".55"/>'
-	elif theme_id == 6:
-		detail = '<ellipse cx="48" cy="12" rx="85" ry="48" fill="url(#gloss)" opacity=".18"/>'
-	else:
-		detail = '<rect x="6" y="6" width="116" height="113" rx="10" stroke="#3fa8ff" stroke-width="4" opacity=".22" fill="none"/><rect x="6" y="6" width="116" height="113" rx="10" stroke="#b881ff" stroke-width="1.1" fill="none"/>'
-	var svg: String = '<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 128 128"><defs><linearGradient id="g" x1="0" y1="0" x2=".75" y2="1"><stop stop-color="#%s"/><stop offset=".48" stop-color="#%s"/><stop offset="1" stop-color="#%s"/></linearGradient><linearGradient id="gloss" x2=".2" y2="1"><stop stop-color="#ffffff" stop-opacity=".9"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient><clipPath id="c"><rect x="3" y="3" width="122" height="119" rx="12"/></clipPath></defs><rect x="1" y="2" width="126" height="125" rx="14" fill="#%s"/><rect x="2" y="1" width="124" height="122" rx="13" fill="url(#g)"/><g clip-path="url(#c)">%s</g><path d="M4 112V15Q4 4 15 4h98" fill="none" stroke="#fff9e7" stroke-opacity=".26" stroke-width="4"/><path d="M4 112V15Q4 4 15 4h98" fill="none" stroke="#ffffff" stroke-opacity=".52" stroke-width="1"/><path d="M14 121h99q10 0 10-10V14" fill="none" stroke="#28180f" stroke-opacity=".21" stroke-width="2.7"/></svg>' % [p[0], Color(p[0]).lerp(Color(p[1]), 0.48).to_html(false), p[1], p[2], detail]
-	var image := Image.new()
-	image.load_svg_from_string(svg)
-	image.generate_mipmaps()
-	var texture := ImageTexture.create_from_image(image)
-	tiles[theme_id] = texture
 	return texture

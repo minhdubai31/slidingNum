@@ -2,7 +2,7 @@ class_name SlideProfile
 extends RefCounted
 
 const PATH = "user://profile.json"
-var settings: Dictionary = {"sound": true, "music": true, "sfx_volume": 0.75, "music_volume": 0.35, "haptic": true, "animation": true, "numbers": false, "theme": 0}
+var settings: Dictionary = {"sound": true, "music": true, "sfx_volume": 0.75, "music_volume": 0.35, "haptic": true, "animation": true, "numbers": false, "theme": 0, "language": ""}
 var stats: Dictionary = {"numbers": {"wins": 0, "best_time": 0, "best_moves": 0, "four": 0}, "pictures": {"wins": 0, "best_time": 0, "best_moves": 0, "four": 0}}
 var daily_wins: Array = []
 

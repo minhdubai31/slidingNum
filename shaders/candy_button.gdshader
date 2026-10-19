@@ -23,26 +23,31 @@ void fragment() {
 	vec2 canvas_size = control_size + vec2(10.0, 15.0);
 	vec2 p = UV * canvas_size;
 	vec2 face_size = control_size - vec2(0.0, 2.0);
-	if (round_button) { face_size = vec2(min(control_size.x, control_size.y)); }
 	vec2 center = vec2(5.0, 3.0 + press_depth * 1.5) + face_size * 0.5;
+	if (round_button) {
+		// Always a true circle centred in the control, whatever its laid-out size.
+		float d = min(control_size.x, control_size.y) - 2.0;
+		face_size = vec2(d);
+		center = vec2(5.0 + control_size.x * 0.5, 3.0 + press_depth * 1.5 + (control_size.y - 2.0) * 0.5);
+	}
 	float radius = min(corner_radius, min(face_size.x, face_size.y) * 0.49);
 	if (round_button) { radius = face_size.x * 0.5; }
 	float face_d = rounded_box(p - center, face_size * 0.5, radius);
 	float base_d = rounded_box(p - center - vec2(0.0, 1.8 - press_depth), face_size * 0.5, radius);
-	float shadow_d = rounded_box(p - center - vec2(0.0, 3.0 - press_depth), face_size * 0.5, radius);
+	float shadow_d = rounded_box(p - center - vec2(0.0, 4.5 - press_depth * 1.5), face_size * 0.5, radius);
 	float aa = max(fwidth(face_d), 0.7);
 	float face_mask = 1.0 - smoothstep(-aa, aa, face_d);
 	float base_mask = 1.0 - smoothstep(-aa, aa, base_d);
-	float shadow_mask = (1.0 - smoothstep(-1.0, 4.0, shadow_d)) * 0.14;
-	vec3 base = mix(base_color.rgb, vec3(0.68, 0.65, 0.59), disabled_amount);
-	vec3 color = mix(vec3(0.17, 0.12, 0.07), base, base_mask);
+	float shadow_mask = (1.0 - smoothstep(-2.0, 7.0, shadow_d)) * 0.22;
+	vec3 base = mix(base_color.rgb, vec3(0.74, 0.70, 0.64), disabled_amount * 0.6);
+	vec3 color = mix(vec3(0.15, 0.10, 0.05), base, base_mask);
 	float alpha = max(shadow_mask, base_mask);
 	float t = clamp((p.y - center.y + face_size.y * 0.5) / face_size.y, 0.0, 1.0);
 	vec3 face = mix(top_color.rgb, bottom_color.rgb, smoothstep(0.0, 1.0, t));
 	face += hover_amount * 0.012;
-	face = mix(face, vec3(0.85, 0.83, 0.77), disabled_amount * 0.8);
+	face = mix(face, vec3(0.93, 0.91, 0.87), disabled_amount * 0.45);
 	// A broad satin highlight, with a narrow rim catching light at the top.
-	float satin = exp(-pow((t - 0.20) * 3.0, 2.0)) * 0.025;
+	float satin = exp(-pow((t - 0.16) * 3.2, 2.0)) * 0.09;
 	face = mix(face, vec3(1.0), satin * (1.0 - disabled_amount));
 	float rim = exp(-pow((face_d + 0.7) / 1.3, 2.0));
 	vec3 rim_color = mix(vec3(0.70, 0.61, 0.46), vec3(1.0, 1.0, 0.98), 1.0 - t);

@@ -6,6 +6,7 @@ var activation_pending: bool = false
 var pointer_inside: bool = false
 var primary: bool = false
 var dark: bool = false
+var blue: bool = false
 var corner_radius: float = 22.0
 var body: ColorRect
 var body_material: ShaderMaterial
@@ -50,9 +51,11 @@ func refresh_surface() -> void:
 	body_material.set_shader_parameter("control_size", size)
 	body_material.set_shader_parameter("corner_radius", corner_radius)
 	body_material.set_shader_parameter("round_button", round_button)
-	body_material.set_shader_parameter("top_color", Color("46dc30") if primary else (Color("736c5f") if dark else Color("fffdf8")))
-	body_material.set_shader_parameter("bottom_color", Color("17b421") if primary else (Color("504a41") if dark else Color("f4efe4")))
-	body_material.set_shader_parameter("base_color", Color("188e20") if primary else (Color("39352f") if dark else Color("cbbda6")))
+	var tone: String = "primary" if primary else ("blue" if blue else ("dark" if dark else "cream"))
+	var colors: Dictionary = {"primary": ["4fe03a", "18b123", "138a1d"], "blue": ["3ea2ff", "1677f2", "0f58b8"], "dark": ["6f665a", "4a433a", "2f2a24"], "cream": ["fffdf8", "f2ebdf", "cdbfa8"]}
+	body_material.set_shader_parameter("top_color", Color(colors[tone][0]))
+	body_material.set_shader_parameter("bottom_color", Color(colors[tone][1]))
+	body_material.set_shader_parameter("base_color", Color(colors[tone][2]))
 	body_material.set_shader_parameter("disabled_amount", 1.0 if disabled else 0.0)
 	was_disabled = disabled
 

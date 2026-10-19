@@ -14,6 +14,8 @@ var locked: bool = false
 var theme_id: int = 0
 var reduced_motion: bool = false
 var hide_numbers: bool = false
+var frameless: bool = false
+var intro: bool = false
 var hint_tile: int = -1
 var hint_until: float = 0.0
 var photo_atlas: Texture2D
@@ -37,8 +39,8 @@ var celebration: float = -1.0
 var particles: Array[Dictionary] = []
 var landing: Dictionary = {}
 var font: Font = ThemeDB.fallback_font
-const INK = Color("243b43")
-const ORANGE = Color("ed784e")
+const CORNER = 0.105
+const CONFETTI = [Color("ff7a9c"), Color("ffcf3f"), Color("5ec8ff"), Color("6fd67a"), Color("b48cff"), Color("ff9a4a")]
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -52,7 +54,7 @@ func unit() -> float:
 	return size.x / 390.0
 
 func tile_gap() -> float:
-	return (2.4 if photo_mode else 7.0) * unit()
+	return (4.0 if photo_mode else 7.0) * unit()
 
 func target(index: int) -> Vector2:
 	return Vector2(12, 12) * unit() + Vector2(index % puzzle.dimension, index / puzzle.dimension) * tile_step()
@@ -86,11 +88,15 @@ func _process(delta: float) -> void:
 		if id == drag_id:
 			continue
 		positions[id] = target(i) if reduced_motion else Vector2(positions.get(id, target(i))).lerp(target(i), 1.0 - exp(-24.0 * delta))
+	if intro and clock > 0.5 + puzzle.cells.size() * 0.028:
+		intro = false
 	if celebration >= 0.0:
 		celebration += delta
 	for p in particles:
 		p["position"] += p["velocity"] * delta
-		p["velocity"].y += 380.0 * delta
+		p["velocity"].y += 420.0 * delta
+		p["velocity"].x *= 1.0 - delta * 0.8
+		p["spin"] += p["spin_speed"] * delta
 		p["life"] -= delta
 	particles = particles.filter(func(p): return p["life"] > 0)
 	queue_redraw()
@@ -168,26 +174,30 @@ func celebrate() -> void:
 	celebration = 0.0
 	if reduced_motion:
 		return
-	for i in range(65):
-		particles.append({"position": size * 0.5, "velocity": Vector2(randf_range(-210, 210), randf_range(-340, -70)), "life": randf_range(0.8, 1.8), "color": [ORANGE, Color("e6bc67"), Color("649b86")].pick_random()})
+	for i in range(90):
+		var angle: float = randf_range(-PI * 0.92, -PI * 0.08)
+		var speed: float = randf_range(220, 520)
+		particles.append({"position": size * Vector2(0.5, 0.55), "velocity": Vector2.from_angle(angle) * speed, "life": randf_range(0.9, 1.9), "color": CONFETTI.pick_random(), "spin": randf() * TAU, "spin_speed": randf_range(-9, 9), "shape": i % 3})
 
-func box(rect: Rect2, color: Color, radius: int = 14, shadow: bool = false) -> void:
-	var style := StyleBoxFlat.new()
-	style.bg_color = color
-	style.set_corner_radius_all(radius)
-	if shadow:
-		style.shadow_color = Color(0.12, 0.22, 0.24, 0.10)
-		style.shadow_size = 5
-		style.shadow_offset = Vector2(0, 4)
-	draw_style_box(style, rect)
+func play_intro() -> void:
+	if reduced_motion:
+		return
+	intro = true
+	clock = 0.0
 
+# Rounds every piece of the picture and lightly softens over-sharpened artwork so that
+# fine hair and foliage do not shimmer when minified onto small tiles.
 func prepare_photo() -> void:
 	var image: Image = picture.get_image()
 	if image.is_compressed():
 		image.decompress()
+	image.clear_mipmaps()
 	image.convert(Image.FORMAT_RGBA8)
+	var full: Vector2i = image.get_size()
+	image.resize(int(full.x * 0.58), int(full.y * 0.58), Image.INTERPOLATE_CUBIC)
+	image.resize(full.x, full.y, Image.INTERPOLATE_BILINEAR)
 	var n: int = puzzle.dimension
-	var radius: int = maxi(2, int(float(image.get_width()) / n * 0.063))
+	var radius: int = maxi(2, int(float(image.get_width()) / n * CORNER))
 	for row in range(n):
 		for col in range(n):
 			var left: int = int(float(col) * image.get_width() / n)
@@ -208,67 +218,99 @@ func prepare_photo() -> void:
 	atlas_source = picture.get_instance_id()
 	atlas_dimension = n
 
+func rounded(color: Color, radius: float) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = color
+	style.set_corner_radius_all(int(radius))
+	style.anti_aliasing_size = 0.8
+	return style
+
+func intro_scale(id: int) -> float:
+	if not intro:
+		return 1.0
+	var order: int = puzzle.cells.find(id)
+	var t: float = clampf((clock - 0.08 - order * 0.028) / 0.38, 0.0, 1.0)
+	# Back-out easing gives each tile a small pop as it lands.
+	var s: float = 1.7
+	var k: float = t - 1.0
+	return 1.0 + (s + 1.0) * k * k * k + s * k * k
+
 func _draw() -> void:
 	if puzzle == null:
 		return
-	var palette: Array = SlideUI.PALETTES[theme_id]
-	var frame_color := Color("985b2d") if theme_id < 2 else Color(palette[2])
-	var scale_unit: float = unit()
-	box(Rect2(Vector2(0, 5) * scale_unit, size), Color(0.08, 0.04, 0.01, 0.45), int(19 * scale_unit), true)
-	box(Rect2(Vector2.ZERO, size), frame_color.lightened(0.25), int(18 * scale_unit))
-	box(Rect2(Vector2.ONE * 4 * scale_unit, size - Vector2.ONE * 8 * scale_unit), frame_color, int(15 * scale_unit))
-	box(Rect2(Vector2.ONE * 10 * scale_unit, size - Vector2.ONE * 20 * scale_unit), frame_color.darkened(0.48), int(10 * scale_unit))
+	var u: float = unit()
+	if not frameless:
+		SlideArt.draw_frame(self, Rect2(Vector2.ZERO, size), theme_id)
 	var step: float = tile_step()
 	var gutter: float = tile_gap()
 	var tile_size: Vector2 = Vector2.ONE * (step - gutter)
+	var radius: float = maxf(3.0, tile_size.x * CORNER)
 	if preview and picture:
-		draw_texture_rect(picture, Rect2(Vector2(15, 15), size - Vector2(30, 30)), false)
+		var full := Rect2(Vector2(12, 12) * u + Vector2.ONE * gutter * 0.5, size - Vector2(24, 24) * u - Vector2.ONE * gutter)
+		draw_style_box(rounded(Color(0, 0, 0, 0.3), radius), full)
+		draw_texture_rect(picture, full, false)
+		draw_texture_rect(SlideArt.photo_bevel(), full, false)
 		return
+	var slot_theme: int = theme_id
 	for i in range(puzzle.cells.size()):
-		box(Rect2(target(i) + Vector2.ONE * gutter * 0.5, tile_size), frame_color.darkened(0.48), int(8 * scale_unit))
+		SlideArt.draw_slot(self, Rect2(target(i) + Vector2.ONE * gutter * 0.5, tile_size), slot_theme, radius)
+	var order: Array[int] = []
 	for i in range(puzzle.cells.size()):
+		if puzzle.cells[i] != 0 and puzzle.cells[i] != drag_id:
+			order.append(i)
+	if drag_id != -1:
+		order.append(puzzle.cells.find(drag_id))
+	for i in order:
 		var id: int = puzzle.cells[i]
-		if id == 0:
-			continue
 		var pos: Vector2 = positions.get(id, target(i))
-		if not reduced_motion and celebration >= 0.0 and celebration < 0.8:
-			pos.y -= sin(clampf((celebration - float(id) * 0.018) * 7.0, 0, PI)) * 7.0
+		if not reduced_motion and celebration >= 0.0 and celebration < 1.0:
+			pos.y -= sin(clampf((celebration - float(id) * 0.022) * 6.0, 0, PI)) * 9.0 * u
 		var rect := Rect2(pos + Vector2.ONE * gutter * 0.5, tile_size)
-		var movable: bool = puzzle.can_move(i)
-		var lift: float = 2.8 * scale_unit if photo_mode else 2.0 * scale_unit
-		box(Rect2(rect.position + Vector2(0, lift), rect.size), Color(0.12, 0.06, 0.02, 0.5), maxi(2, int(step * 0.063)))
-		if photo_mode:
-			box(rect, Color("ac8053"), maxi(2, int(step * 0.063)))
-		else:
-			draw_texture_rect(SlideUI.tile_texture(theme_id), rect, false)
+		var grow: float = intro_scale(id)
+		if id == drag_id:
+			grow *= 1.03
+		elif landing.has(id) and not reduced_motion:
+			grow *= 1.0 + sin(float(landing[id]) / 0.32 * PI) * 0.035
+		if not is_equal_approx(grow, 1.0):
+			rect = Rect2(rect.get_center() - rect.size * grow * 0.5, rect.size * grow)
+		if grow <= 0.02:
+			continue
+		SlideArt.draw_tile_shadow(self, rect, radius, u, 1.6 if id == drag_id else 1.0)
 		if photo_mode and picture:
-			var image_step: Vector2 = picture.get_size() / float(puzzle.dimension)
-			var source := Rect2(Vector2((id - 1) % puzzle.dimension, (id - 1) / puzzle.dimension) * image_step, image_step)
-			var face: Rect2 = rect.grow(-0.65 * scale_unit)
-			face.size.y -= 1.3 * scale_unit
-			draw_texture_rect_region(photo_atlas if photo_atlas else picture, face, source)
-			draw_texture_rect(SlideUI.photo_finish_texture(), face, false)
-			if show_numbers:
-				box(Rect2(rect.position + Vector2(5, 5), Vector2(24, 23)), Color(0.1, 0.2, 0.23, 0.73), 7)
-				draw_string(font, rect.position + Vector2(5, 22), str(id), HORIZONTAL_ALIGNMENT_CENTER, 24, 14, Color.WHITE)
-		elif not hide_numbers:
-			var fs: int = int(step * 0.38)
-			var baseline := rect.position + Vector2(0, tile_size.y * 0.5 + fs * 0.35)
-			draw_string(font, baseline + Vector2(0, 1), str(id), HORIZONTAL_ALIGNMENT_CENTER, tile_size.x, fs, Color(1, 1, 1, 0.5))
-			draw_string(font, baseline, str(id), HORIZONTAL_ALIGNMENT_CENTER, tile_size.x, fs, Color(palette[3]))
+			draw_photo_tile(rect, id, radius, u)
+		else:
+			draw_texture_rect(SlideArt.tile_texture(theme_id, id * 7 + 3), rect, false)
+			if not hide_numbers:
+				SlideArt.draw_number(self, rect, theme_id, id, font, int(step * (0.42 if puzzle.dimension < 5 else 0.4)), u)
 		if landing.has(id) and not reduced_motion:
-			var pulse := StyleBoxFlat.new()
-			pulse.bg_color = Color(1, 0.94, 0.77, sin(float(landing[id]) / 0.32 * PI) * 0.13)
-			pulse.set_corner_radius_all(maxi(2, int(step * 0.063)))
-			draw_style_box(pulse, rect)
+			draw_style_box(rounded(Color(1, 0.96, 0.82, sin(float(landing[id]) / 0.32 * PI) * 0.16), radius), rect)
 		if id == hint_tile and clock < hint_until:
-			var glow := StyleBoxFlat.new()
-			glow.bg_color = Color(1, 0.8, 0.15, 0.12 + sin(clock * 8) * 0.08)
+			var glow := rounded(Color(1, 0.84, 0.2, 0.14 + sin(clock * 8) * 0.08), radius)
 			glow.border_color = Color("ffe768")
-			glow.set_border_width_all(3)
-			glow.set_corner_radius_all(10)
+			glow.set_border_width_all(int(maxf(2, 3 * u)))
+			glow.shadow_color = Color(1, 0.85, 0.2, 0.45 + sin(clock * 8) * 0.2)
+			glow.shadow_size = int(10 * u)
 			draw_style_box(glow, rect)
 	for p in particles:
 		var color: Color = p["color"]
-		color.a = minf(p["life"], 1.0)
-		draw_circle(p["position"], 4, color)
+		color.a = minf(p["life"] * 1.5, 1.0)
+		draw_set_transform(p["position"], p["spin"])
+		match int(p["shape"]):
+			0: draw_rect(Rect2(-3, -6, 6, 12), color)
+			1: draw_circle(Vector2.ZERO, 4, color)
+			_: draw_colored_polygon(PackedVector2Array([Vector2(0, -6), Vector2(1.8, -1.8), Vector2(6, 0), Vector2(1.8, 1.8), Vector2(0, 6), Vector2(-1.8, 1.8), Vector2(-6, 0), Vector2(-1.8, -1.8)]), color)
+	draw_set_transform(Vector2.ZERO)
+
+func draw_photo_tile(rect: Rect2, id: int, radius: float, u: float) -> void:
+	# A thin darker body under the picture face gives each piece visible thickness.
+	var lip: float = maxf(1.5, 3.0 * u * clampf(rect.size.x / 110.0, 0.55, 1.0))
+	draw_style_box(rounded(Color("2b1a0f"), radius), rect)
+	var face := Rect2(rect.position, rect.size - Vector2(0, lip))
+	var image_step: Vector2 = picture.get_size() / float(puzzle.dimension)
+	var source := Rect2(Vector2((id - 1) % puzzle.dimension, (id - 1) / puzzle.dimension) * image_step, image_step)
+	draw_texture_rect_region(photo_atlas if photo_atlas else picture, face, source)
+	draw_texture_rect(SlideArt.photo_bevel(), face, false)
+	if show_numbers:
+		var badge := Rect2(face.position + Vector2(5, 5) * u, Vector2(26, 24) * u)
+		draw_style_box(rounded(Color(0.12, 0.08, 0.05, 0.68), 8 * u), badge)
+		draw_string(font, badge.position + Vector2(0, 18 * u), str(id), HORIZONTAL_ALIGNMENT_CENTER, badge.size.x, int(15 * u), Color.WHITE)
