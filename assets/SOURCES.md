@@ -22,18 +22,20 @@
 - Giấy phép: CC0; xem `licenses/Kenney-CC0.txt`.
 - Bản WAV từ gói chuyển đổi cho Godot: https://github.com/Calinou/kenney-interface-sounds
 - `click_003.wav`: nút bấm.
-- `confirmation_001.wav`: hoàn thành ván.
-- Các file scratch/drop/back cũ chỉ còn là tài nguyên dự phòng; không dùng để kéo/đặt ô từ phiên bản 0.4.
-- Giữ nguyên file âm thanh; âm lượng và cao độ được điều chỉnh trong game.
+- `confirmation_001.wav`: tín hiệu gợi ý nhẹ.
+- `drop_003.wav`: đặt ô; `back_001.wav`: trả ô và hoàn tác; `drop_004.wav`: phục hồi và làm lại. Âm lượng/cao độ phân biệt theo thao tác.
+- `success-soft.wav`: đoạn thắng ngắn ghép ba lần phát lên cao dần từ `confirmation_001.wav`, có fade mềm và giới hạn đỉnh; tái tạo bằng `tools/prepare_success_audio.py`. Nguồn CC0 như trên.
+- Không phát âm thanh trong lúc kéo ô. `scratch_001.wav` và hai file `wood-*.wav` hiện là tài nguyên dự phòng.
+- Các file Kenney gốc giữ nguyên; âm lượng và cao độ được điều chỉnh trong game. File `success-soft.wav` là bản biên tập riêng từ nguồn CC0.
 
 ## Tiếng quân gỗ trượt — Board Game Wood Piece Slide
 
 - Tác giả: Jeff Final Boss / El Final Boss.
 - Nguồn: https://licensing.routenote.com/sound-effect/board-game-wood-piece-slide
 - Giấy phép: CC0. Ghi nguồn và mô tả chỉnh âm trong `licenses/Wood-Piece-Slide-CC0.txt`.
-- Đây là bản ghi quân cờ trượt trên bàn; dùng thay hoàn toàn tiếng scratch điện tử trước đó.
-- `audio/wood-slide-soft.wav`: lọc bớt phần chói và tiếng trầm thừa, fade hai đầu, giảm đỉnh âm. Chỉ phát một lần cho mỗi cử chỉ kéo.
-- `audio/wood-place-soft.wav`: đoạn tiếp xúc ngắn, dùng khi đặt/trả ô, âm lượng trả ô thấp hơn.
+- Đây là bản ghi quân cờ trượt trên bàn được dùng ở phiên bản trước; hiện giữ lại làm tài nguyên dự phòng.
+- `audio/wood-slide-soft.wav`: lọc bớt phần chói và tiếng trầm thừa, fade hai đầu, giảm đỉnh âm. Hiện không phát trong game.
+- `audio/wood-place-soft.wav`: đoạn tiếp xúc ngắn, tài nguyên dự phòng, hiện không phát trong game.
 - File MP3 gốc được giữ ở `audio/source/`; công cụ tái tạo WAV trong `tools/`.
 
 ## Nhạc nền — Exploration Theme

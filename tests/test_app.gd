@@ -102,7 +102,7 @@ func run() -> void:
 	check(app.audio.music.stream is AudioStreamOggVorbis and app.audio.music.stream.loop, "Background music is a looped imported Ogg")
 	check(app.audio.music.stream.get_length() > 120, "Background music decodes full track")
 	check(app.audio.music.playing and app.audio.music.get_playback_position() > 0, "Music playback advances")
-	for cue in ["button", "drag", "drop", "cancel", "win"]:
+	for cue in ["button", "drop", "cancel", "undo", "redo", "hint", "restart", "win"]:
 		check(app.audio.effects[cue].get_length() > 0, "Imported SFX decodes: " + cue)
 	var animated = app.hint_button
 	animated.press_feedback()
@@ -143,14 +143,13 @@ func run() -> void:
 	board.release_drag(point + board.drag_axis * board.tile_step() * 0.12)
 	check(app.puzzle.moves == 0, "Short drag cancels")
 	board.press(point, 0)
-	var drag_events: Array[int] = [0]
-	board.drag_sound_requested.connect(func(): drag_events[0] += 1)
+	var sounds_before_drag: Dictionary = app.audio.cue_counts.duplicate()
 	for fraction in [0.15, 0.3, 0.5, 0.65]:
 		board.motion(point + board.drag_axis * board.tile_step() * fraction)
-	check(drag_events[0] == 1, "A continuous drag requests exactly one wooden slide sound")
+	check(app.audio.cue_counts == sounds_before_drag, "Dragging stays silent until release")
 	board.release_drag(point + board.drag_axis * board.tile_step() * 0.65)
 	check(app.puzzle.moves == 1, "Long drag commits")
-	check(int(app.audio.cue_counts.get("drag", 0)) > 0, "Dragging requests slide sound")
+	check(not app.audio.effects.has("drag"), "No drag sound is loaded")
 	check(int(app.audio.cue_counts.get("drop", 0)) > 0, "Committed move plays tile placement")
 	check(int(app.audio.cue_counts.get("cancel", 0)) > 0, "Cancelled drag plays return sound")
 	app.hint_move()
@@ -334,5 +333,5 @@ func run() -> void:
 			file.close()
 		elif FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
-	print("PASS: full app flow, two-option Home menu, imported icons/audio, button press/spring, drag/drop/cancel sounds, looping music, mute/volume/focus, persistence, mobile layout" if failures == 0 else "FAILED: %d checks" % failures)
+	print("PASS: full app flow, two-option Home menu, imported icons/audio, button press/spring, silent dragging, placement/return sounds, looping music, mute/volume/focus, persistence, mobile layout" if failures == 0 else "FAILED: %d checks" % failures)
 	quit(0 if failures == 0 else 1)

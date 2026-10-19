@@ -826,7 +826,6 @@ func game_screen() -> void:
 	)
 	board.moved.connect(on_moved)
 	board.completed.connect(on_completed)
-	board.drag_sound_requested.connect(audio.play_drag)
 	board.drag_cancelled.connect(audio.play_cancel)
 	column.add_child(board)
 	board.sync_positions()
@@ -918,6 +917,7 @@ func restart_game() -> void:
 	go("game")
 	if is_instance_valid(board):
 		board.play_intro()
+	audio.play_action("restart")
 
 func hint_move() -> void:
 	if hints_left <= 0 or puzzle.solution.is_empty() or not is_instance_valid(board):
@@ -926,6 +926,7 @@ func hint_move() -> void:
 	if not puzzle.can_move(puzzle.cells.find(value)):
 		return
 	hints_left -= 1
+	audio.play_action("hint")
 	board.hint_tile = value
 	board.hint_until = board.clock + 3.0
 	status_label.text = U.t("Di chuyển ô đang sáng vào khoảng trống")
@@ -942,7 +943,7 @@ func undo_move() -> void:
 	board.cancel_drag()
 	if puzzle.undo():
 		board.hint_tile = -1
-		on_moved()
+		on_moved("undo")
 
 func redo_move() -> void:
 	if puzzle.solved():
@@ -950,10 +951,10 @@ func redo_move() -> void:
 	board.cancel_drag()
 	if puzzle.redo():
 		board.hint_tile = -1
-		on_moved()
+		on_moved("redo")
 
-func on_moved() -> void:
-	play_tick()
+func on_moved(cue: String = "drop") -> void:
+	audio.play_action(cue)
 	if profile.settings.haptic and OS.has_feature("mobile"):
 		Input.vibrate_handheld(12)
 	if is_instance_valid(moves_label):
@@ -1933,10 +1934,6 @@ func apply_preferences() -> void:
 		SlideI18n.language = profile.settings.language
 	if is_instance_valid(audio):
 		audio.configure(profile.settings)
-
-func play_tick() -> void:
-	if is_instance_valid(audio):
-		audio.play_drop()
 
 # Staggered pop-in of each block on the page.
 func entrance() -> void:

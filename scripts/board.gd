@@ -2,7 +2,6 @@ extends Control
 
 signal moved
 signal completed
-signal drag_sound_requested
 signal drag_cancelled
 
 var puzzle: SlidePuzzle
@@ -29,8 +28,6 @@ var drag_start: Vector2
 var drag_axis: Vector2
 var drag_distance: float = 0.0
 var drag_time: float = 0.0
-var drag_sound_distance: float = 0.0
-var drag_sound_played: bool = false
 var last_motion_time: float = 0.0
 var last_motion_distance: float = 0.0
 var release_speed: float = 0.0
@@ -213,8 +210,6 @@ func press(point: Vector2, pointer: int) -> void:
 	drag_start = point
 	drag_axis = (target(puzzle.cells.find(0)) - target(index)).normalized()
 	drag_distance = 0.0
-	drag_sound_distance = 0.0
-	drag_sound_played = false
 	drag_time = clock
 	last_motion_time = clock
 	last_motion_distance = 0.0
@@ -229,9 +224,6 @@ func motion(point: Vector2) -> void:
 	last_motion_time = clock
 	last_motion_distance = drag_distance
 	positions[drag_id] = target(drag_index) + drag_axis * drag_distance
-	if not drag_sound_played and drag_distance > tile_step() * 0.06:
-		drag_sound_played = true
-		drag_sound_requested.emit()
 
 func release_drag(point: Vector2) -> void:
 	var is_tap: bool = point.distance_to(drag_start) < 10.0 and clock - drag_time < 0.45
