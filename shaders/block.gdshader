@@ -2,9 +2,11 @@ shader_type canvas_item;
 render_mode unshaded;
 
 // Lit rounded block: a flat face with a smooth bevel that curves down to the edge.
+uniform float uv_grid = 1.0;
 uniform vec2 block_size = vec2(100.0, 100.0);
 uniform float corner = 10.0;
 uniform float bevel = 8.0;
+uniform float bevel_height = 1.0;
 uniform float ambient = 0.6;
 uniform float light_strength = 0.55;
 uniform float shine = 0.22;
@@ -25,7 +27,8 @@ float rounded_sdf(vec2 p, vec2 half_size, float radius) {
 
 void fragment() {
 	vec2 half_size = block_size * 0.5;
-	vec2 p = (UV - 0.5) * block_size;
+	vec2 local_uv = fract(UV * uv_grid);
+	vec2 p = (local_uv - 0.5) * block_size;
 	float d = rounded_sdf(p, half_size, corner);
 	float aa = max(fwidth(d), 0.5);
 	float mask = 1.0 - smoothstep(-aa, aa, d);
@@ -33,7 +36,7 @@ void fragment() {
 	// Circular bevel profile: the slope is zero on the flat face and steepens toward the edge.
 	float inward = clamp(-d / bevel, 0.0, 1.0);
 	float u = 1.0 - inward;
-	float slope = min(u / max(sqrt(max(1.0 - u * u, 0.0001)), 0.05) / bevel, 8.0);
+	float slope = min(u / max(sqrt(max(1.0 - u * u, 0.0001)), 0.05) * bevel_height / bevel, 8.0);
 
 	// Outward direction of the nearest edge at this pixel.
 	vec2 q = abs(p) - half_size + vec2(corner);
@@ -57,7 +60,7 @@ void fragment() {
 	float away = max(-dot(n, light), 0.0);
 	vec3 lit = base.rgb * (1.0 + (diffuse - light.z) * light_strength) * (1.0 - away * shadow_strength) + (vec3(1.0) - base.rgb) * spec;
 	// Soft sheen across the upper part of the face, like the glossy reference tiles.
-	float sheen = top_gloss * pow(1.0 - clamp(UV.y, 0.0, 1.0), 3.0);
+	float sheen = top_gloss * pow(1.0 - clamp(local_uv.y, 0.0, 1.0), 3.0);
 	lit += vec3(sheen) * mask;
 	COLOR = vec4(lit, base.a * mask);
 }

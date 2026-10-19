@@ -46,6 +46,7 @@ var tile_layer: Control
 var photo_layer: Control
 var number_layer: Control
 var block_material: ShaderMaterial
+var photo_material: ShaderMaterial
 var preview_layer: Control
 var preview_material: ShaderMaterial
 
@@ -58,8 +59,10 @@ func _ready() -> void:
 	block_material.shader = load("res://shaders/block.gdshader")
 	tile_layer = make_layer(block_material)
 	tile_layer.draw.connect(func(): draw_tiles(tile_layer))
-	# Picture pieces are plain textures: the block shader samples UV over the whole atlas, so it cannot shade them.
-	photo_layer = make_layer(null)
+	# Use tile-local UVs to light each photo piece independently within the atlas.
+	photo_material = ShaderMaterial.new()
+	photo_material.shader = block_material.shader
+	photo_layer = make_layer(photo_material)
 	photo_layer.draw.connect(func(): draw_photos(photo_layer))
 	preview_material = ShaderMaterial.new()
 	preview_material.shader = block_material.shader
@@ -97,6 +100,15 @@ func refresh() -> void:
 func update_block_params() -> void:
 	if block_material == null or puzzle == null:
 		return
+	var photo_size := Vector2.ONE * (tile_step() - tile_gap()) - Vector2(0, 2.0 * unit())
+	photo_material.set_shader_parameter("uv_grid", float(puzzle.dimension))
+	photo_material.set_shader_parameter("block_size", photo_size)
+	photo_material.set_shader_parameter("corner", maxf(3.0, photo_size.x * CORNER))
+	photo_material.set_shader_parameter("bevel", maxf(2.0, photo_size.x * 0.065))
+	photo_material.set_shader_parameter("bevel_height", 3.2)
+	photo_material.set_shader_parameter("light_strength", 0.5)
+	photo_material.set_shader_parameter("shine", 0.2)
+	photo_material.set_shader_parameter("shadow_strength", 0.55)
 	preview_material.set_shader_parameter("block_size", picture_rect().size)
 	preview_material.set_shader_parameter("corner", 12.0 * unit())
 	var block: Vector2 = picture_rect().size if preview else Vector2.ONE * (tile_step() - tile_gap())
@@ -346,11 +358,11 @@ func _draw() -> void:
 	for i in range(puzzle.cells.size()):
 		SlideArt.draw_slot(self, Rect2(target(i) + Vector2.ONE * gutter * 0.5, tile_size), theme_id, radius)
 	# Shadow and thickness sit under each lit face.
-	var side := Color("2b1a0f") if photo_mode else Color(SlideArt.material(theme_id).side)
+	var side := Color("69452e") if photo_mode else Color(SlideArt.material(theme_id).side)
 	for entry in tile_rects():
 		var rect: Rect2 = entry.rect
 		SlideArt.draw_tile_shadow(self, rect, radius, u, 1.6 if entry.id == drag_id else 1.0)
-		draw_style_box(rounded(side, radius), Rect2(rect.position + Vector2(0, 3.2 * u), rect.size))
+		draw_style_box(rounded(side, radius), Rect2(rect.position + Vector2(0, (1.6 if photo_mode else 3.2) * u), rect.size))
 
 func draw_tiles(layer: Control) -> void:
 	if puzzle == null or (photo_mode and picture) or preview:
@@ -358,7 +370,7 @@ func draw_tiles(layer: Control) -> void:
 	for entry in tile_rects():
 		layer.draw_texture_rect(SlideArt.face_texture(theme_id, entry.id * 7 + 3), entry.rect, false)
 
-# Photo pieces: the rounded corners are already in the atlas; a thin lit rim is laid over each piece.
+# A raised photo face with the same curved-edge lighting as the numbered blocks.
 func draw_photos(layer: Control) -> void:
 	if puzzle == null or not picture:
 		return
@@ -371,8 +383,8 @@ func draw_photos(layer: Control) -> void:
 	for entry in tile_rects():
 		var index: int = entry.id - 1
 		var source := Rect2(Vector2(index % puzzle.dimension, index / puzzle.dimension) * image_step, image_step)
-		layer.draw_texture_rect_region(photo_atlas if photo_atlas else picture, entry.rect, source)
-		layer.draw_texture_rect(SlideArt.photo_bevel(), entry.rect, false, Color(1, 1, 1, 0.25))
+		var face := Rect2(entry.rect.position, entry.rect.size - Vector2(0, 2.0 * unit()))
+		layer.draw_texture_rect_region(photo_atlas if photo_atlas else picture, face, source)
 
 func draw_overlays(layer: Control) -> void:
 	if puzzle == null:
