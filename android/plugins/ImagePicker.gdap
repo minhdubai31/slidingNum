@@ -1,0 +1,11 @@
+[config]
+
+name="ImagePicker"
+binary_type="local"
+binary="ImagePicker.aar"
+
+[dependencies]
+
+local=[]
+remote=[]
+custom_maven_repos=[]

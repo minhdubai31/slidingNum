@@ -37,11 +37,14 @@ var initial_solution: Array[int] = []
 var stats_photo: bool = false
 var save_timer: float = 0.0
 var file_dialog: FileDialog
+var android_picker: Object
 var audio: SlideAudio
 var default_font: Font
 var bold_font: Font
 var test_mode: bool = false
 var screen_parents: Dictionary = {"settings": "home", "themes": "home", "help": "home"}
+var logo_node: Node2D
+var logo_clock: float = 0.0
 
 func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
@@ -73,6 +76,10 @@ func _ready() -> void:
 	file_dialog.filters = PackedStringArray(["*.png, *.jpg, *.jpeg, *.webp ; Images"])
 	file_dialog.file_selected.connect(import_picture)
 	add_child(file_dialog)
+	# On Android the system photo chooser is used; elsewhere a desktop file dialog.
+	if Engine.has_singleton("ImagePicker"):
+		android_picker = Engine.get_singleton("ImagePicker")
+		android_picker.connect("image_picked", import_picture)
 	resized.connect(on_resized)
 	test_mode = OS.get_cmdline_user_args().has("--test-mode")
 	go("home" if test_mode else "splash")
@@ -148,6 +155,10 @@ func go(destination: String, animate: bool = true) -> void:
 	column.add_theme_constant_override("separation", 14)
 	margin.add_child(column)
 	layout_ui()
+	# Only the celebration and daily screens are centred vertically; list screens keep their header at the top.
+	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.alignment = BoxContainer.ALIGNMENT_CENTER if screen in ["result", "daily"] else BoxContainer.ALIGNMENT_BEGIN
 	match screen:
 		"splash": splash_screen()
 		"home": home_screen()
@@ -249,9 +260,9 @@ func soft_card(color: Color, radius: int = 22) -> StyleBoxFlat:
 	skin.border_color = Color(1, 1, 1, 0.75)
 	skin.set_border_width_all(0)
 	skin.border_width_top = 1
-	skin.shadow_color = Color(0.36, 0.25, 0.12, 0.13)
-	skin.shadow_size = 10
-	skin.shadow_offset = Vector2(0, 4)
+	skin.shadow_color = Color(0.36, 0.25, 0.12, 0.05)
+	skin.shadow_size = 6
+	skin.shadow_offset = Vector2(0, 2)
 	return skin
 
 func icon_image(name: String, length: float, color: String = "493929") -> TextureRect:
@@ -284,19 +295,20 @@ func overlay_fill(parent: Control, child: Control) -> Control:
 	parent.add_child(child)
 	return child
 
-# Loops a gentle vertical float on a free-positioned control.
+# Loops a gentle vertical float on an anchored control. Offsets are animated rather than
+# position, so a later layout pass cannot snap the control back mid-motion.
 func bob(item: Control, distance: float = 5.0, period: float = 2.4, delay: float = 0.0) -> void:
-	if not profile.settings.animation:
-		return
-	var base: float = item.position.y
+	var top: float = item.offset_top
+	var bottom: float = item.offset_bottom
+	var lift := func(v: float):
+		item.offset_top = top - v
+		item.offset_bottom = bottom - v
 	var motion := item.create_tween().set_loops()
 	motion.tween_interval(delay)
-	motion.tween_property(item, "position:y", base - distance, period * 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	motion.tween_property(item, "position:y", base, period * 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	motion.tween_method(lift, 0.0, distance, period * 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	motion.tween_method(lift, distance, 0.0, period * 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 func pulse(item: Control, amount: float = 0.1, period: float = 1.4) -> void:
-	if not profile.settings.animation:
-		return
 	item.resized.connect(func(): item.pivot_offset = item.size * 0.5)
 	item.pivot_offset = item.size * 0.5
 	var motion := item.create_tween().set_loops()
@@ -411,10 +423,18 @@ func logo() -> void:
 	lockup.custom_minimum_size.y = title_size * 0.92 + plaque_size.y + 2
 	lockup.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(lockup)
+	# Controls are snapped to whole pixels; a Node2D carrier lets the logo glide at sub-pixel precision.
+	var mover := Node2D.new()
+	mover.name = "LogoMotion"
+	lockup.add_child(mover)
 	var floating := Control.new()
 	floating.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	floating.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	lockup.add_child(floating)
+	mover.add_child(floating)
+	var fit_logo := func():
+		floating.size = lockup.size
+		floating.position = -lockup.size * Vector2(0.5, 1.0)
+	lockup.resized.connect(fit_logo)
+	fit_logo.call()
 	var title := U.text("SLIDE", title_size, Color("fffdf8"), true)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
@@ -447,13 +467,10 @@ func logo() -> void:
 	word.add_theme_constant_override("shadow_offset_y", 4)
 	word.add_theme_constant_override("shadow_outline_size", 9)
 	plaque.add_child(word)
-	if profile.settings.animation:
-		floating.position.y = -40
-		floating.modulate.a = 0.0
-		var drop := floating.create_tween()
-		drop.tween_property(floating, "modulate:a", 1.0, 0.25)
-		drop.parallel().tween_property(floating, "position:y", 0.0, 0.7).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
-		drop.tween_callback(func(): bob(floating, 4.0, 3.2))
+	# Layout may re-place the anchored node at any time, so its offset is reapplied every frame.
+	logo_node = mover
+	logo_clock = 0.0
+	mover.modulate.a = 0.0
 
 func home_screen() -> void:
 	column.add_theme_constant_override("separation", 10)
@@ -478,61 +495,86 @@ func home_screen() -> void:
 		fit(resume_button.get_meta("label"), content_width() - 60, 13)
 		column.add_child(resume_button)
 	gap(4)
-	var nav := hrow(null, 6)
-	var cell: float = (content_width() - 18) / 4.0
+	var nav := hrow(null, 8)
+	nav.name = "HomeNav"
+	var cell: float = (content_width() - 24) / 4.0
 	var daily_done: bool = profile.daily_wins.has(today())
-	for item in [["trophy", "Thành tích", "stats"], ["calendar", "Thử thách\nhằng ngày", "daily"], ["palette", "Giao diện", "themes"], ["gear", "Cài đặt", "settings"]]:
-		var b := U.action("", func(): go(item[2]))
-		b.name = "Nav" + item[2].capitalize()
-		b.flat = true
-		b.custom_minimum_size.y = 104
-		nav.add_child(b)
+	var items := [["trophy", "Thành tích", "stats"], ["calendar", "Thử thách\nhằng ngày", "daily"], ["palette", "Giao diện", "themes"], ["gear", "Cài đặt", "settings"]]
+	for index in range(items.size()):
+		var item: Array = items[index]
+		var well_size := Vector2(floorf(minf(cell, 92)), floorf(minf(cell, 92) * 0.72))
 		var v := VBoxContainer.new()
-		v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		v.add_theme_constant_override("separation", 6)
-		b.add_child(v)
-		var well := PanelContainer.new()
-		well.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var well_size: float = clampf(cell - 10, 56, 72)
-		well.custom_minimum_size = Vector2(well_size, well_size * 0.88)
-		well.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		var skin := U.panel(Color(0.10, 0.13, 0.14, 0.52), 18, false)
-		skin.set_content_margin_all(well_size * 0.13)
-		skin.border_color = Color(1, 1, 1, 0.16)
-		skin.set_border_width_all(1)
-		skin.border_width_top = 2
-		skin.shadow_color = Color(0, 0, 0, 0.18)
-		skin.shadow_size = 6
-		skin.shadow_offset = Vector2(0, 3)
-		well.add_theme_stylebox_override("panel", skin)
-		var picture := art_image(item[0], well_size * 0.6)
+		v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		v.add_theme_constant_override("separation", 9)
+		nav.add_child(v)
+		var b := U.action("", func(): go(item[2])) as SlideButton
+		b.name = "Nav" + item[2].capitalize()
+		b.palette = ["566466", "343f41", "1c2425"]
+		b.corner_radius = 18.0
+		b.custom_minimum_size = well_size
+		b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		v.add_child(b)
+		var well := CenterContainer.new()
+		well.name = "Well"
+		overlay_fill(b, well)
+		well.offset_bottom = -2
+		var picture := art_image(item[0], well_size.y * 0.64)
 		well.add_child(picture)
-		v.add_child(well)
-		if item[2] == "daily" and not daily_done:
-			var dot := Panel.new()
-			dot.name = "DailyDot"
-			dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			var red := U.panel(Color("ff4b3e"), 8, false)
-			red.border_color = Color.WHITE
-			red.set_border_width_all(2)
-			dot.add_theme_stylebox_override("panel", red)
-			dot.size = Vector2(16, 16)
-			b.add_child(dot)
-			var place := func(): dot.position = Vector2(b.size.x * 0.5 + well_size * 0.5 - 12, -4)
-			b.resized.connect(place)
-			place.call()
-			pulse(dot, 0.22, 1.2)
-		var caption := U.text(item[1], 13, Color.WHITE, true)
+		var caption := U.text(item[1], 14, Color.WHITE, false)
+		caption.add_theme_font_override("font", U.font_at(750))
 		caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		caption.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.4))
+		caption.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.45))
 		caption.add_theme_constant_override("shadow_offset_y", 1)
-		caption.add_theme_constant_override("line_spacing", -3)
+		caption.add_theme_constant_override("shadow_outline_size", 3)
+		caption.add_theme_constant_override("line_spacing", -4)
 		fit(caption, cell - 2, 10)
 		v.add_child(caption)
+		pop_in(v, 0.25 + index * 0.07, 0.5)
+		if item[2] == "daily" and not daily_done:
+			b.add_child(daily_badge(b, well_size))
 	# Push the cards and navigation down toward the thumb on tall screens.
-	var used: float = 44 + 10 + 165 + 30 + clampf(size.x * 0.36, 128, 156) * 2 + 20 + 104 + 70 + (62 if active_session and not puzzle.solved() else 0)
+	var used: float = 44 + 10 + 165 + 30 + clampf(size.x * 0.36, 128, 156) * 2 + 20 + minf(cell, 92) * 0.7 + 50 + 70 + (62 if active_session and not puzzle.solved() else 0)
 	flexible.custom_minimum_size.y = clampf(size.y - used - 40, 6, 150)
+
+func daily_badge(button: Control, well_size: Vector2) -> Control:
+	var badge := PanelContainer.new()
+	badge.name = "DailyDot"
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var red := U.panel(Color("ff3b30"), 11, false)
+	red.set_content_margin_all(0)
+	red.border_color = Color.WHITE
+	red.set_border_width_all(2)
+	red.shadow_color = Color(0.5, 0, 0, 0.35)
+	red.shadow_size = 3
+	red.shadow_offset = Vector2(0, 1)
+	badge.add_theme_stylebox_override("panel", red)
+	badge.custom_minimum_size = Vector2(22, 22)
+	badge.size = Vector2(22, 22)
+	var count := U.text("1", 12, Color.WHITE, true)
+	count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	count.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	badge.add_child(count)
+	badge.pivot_offset = Vector2(11, 22)
+	const REST_Y = -8.0
+	var place := func(): badge.position = Vector2(button.size.x - 15, REST_Y)
+	button.resized.connect(place)
+	place.call()
+	badge.scale = Vector2.ZERO
+	var appear := badge.create_tween()
+	appear.tween_interval(0.7)
+	appear.tween_property(badge, "scale", Vector2.ONE, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	appear.tween_callback(func():
+		# A small hop with squash and stretch every few seconds, instead of a constant pulse.
+		var hop := badge.create_tween().set_loops()
+		hop.tween_interval(2.6)
+		hop.tween_property(badge, "scale", Vector2(1.18, 0.82), 0.09).set_trans(Tween.TRANS_SINE)
+		hop.tween_property(badge, "scale", Vector2(0.88, 1.14), 0.11).set_trans(Tween.TRANS_SINE)
+		var lift := func(v: float): badge.position.y = REST_Y - v
+		hop.parallel().tween_method(lift, 0.0, 7.0, 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		hop.tween_method(lift, 7.0, 0.0, 0.22).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
+		hop.parallel().tween_property(badge, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	)
+	return badge
 
 func mode_card(photo: bool) -> void:
 	var card := U.action("", func(): begin_flow(photo))
@@ -673,9 +715,15 @@ func gallery_screen() -> void:
 		var chevron := icon_image("chevron", 16, "ffffff")
 		chevron.size_flags_vertical = Control.SIZE_SHRINK_END
 		line.add_child(chevron)
-	var pick := cta("Chọn ảnh từ thiết bị", "image", func(): file_dialog.popup_centered_ratio(0.85), 56)
+	var pick := cta("Chọn ảnh từ thiết bị", "image", open_picture_picker, 56)
 	pick.name = "PickPicture"
 	column.add_child(pick)
+
+func open_picture_picker() -> void:
+	if android_picker:
+		android_picker.call("pick_image")
+	else:
+		file_dialog.popup_centered_ratio(0.85)
 
 func selected_picture() -> Texture2D:
 	if pending_picture == -1 and FileAccess.file_exists("user://custom_picture.png"):
@@ -737,40 +785,31 @@ func stat_pill(glyph: Texture2D, value: String) -> Label:
 func game_screen() -> void:
 	column.add_theme_constant_override("separation", 10)
 	var top := hrow()
-	var pause := U.round_action("pause", pause_game, 50)
-	pause.name = "PauseButton"
-	top.add_child(pause)
+	var theme_button := U.round_action("palette", func(): go("themes"), 50)
+	theme_button.name = "ThemeButton"
+	theme_button.icon = SlideArt.icon("palette")
+	theme_button.tooltip_text = U.t("Giao diện")
+	top.add_child(theme_button)
 	var title := U.text("%d × %d" % [puzzle.dimension, puzzle.dimension], 28, Color.WHITE, true)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.35))
 	title.add_theme_constant_override("shadow_offset_y", 2)
 	top.add_child(title)
-	var home := U.round_action("home", pause_game, 50)
-	home.name = "HomeButton"
-	top.add_child(home)
+	var pause := U.round_action("pause", pause_game, 50)
+	pause.name = "PauseButton"
+	top.add_child(pause)
 	var stats := hrow(null, 10)
-	var undo := U.round_action("undo", undo_move, 44)
-	undo.name = "Undo"
-	undo.tooltip_text = U.t("Hoàn tác")
-	undo.disabled = puzzle.history.is_empty()
-	stats.add_child(undo)
-	var left := Control.new()
-	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stats.add_child(left)
+	stats.alignment = BoxContainer.ALIGNMENT_CENTER
 	time_label = stat_pill(U.icon("clock", "fff8eb"), format_time(elapsed))
 	stats.add_child(time_label.get_meta("pill"))
 	moves_label = stat_pill(SlideArt.icon("feet_white"), str(puzzle.moves))
 	stats.add_child(moves_label.get_meta("pill"))
-	var right := Control.new()
-	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stats.add_child(right)
-	var theme_button := U.round_action("palette", func(): go("themes"), 44)
-	theme_button.name = "ThemeButton"
-	theme_button.icon = SlideArt.icon("palette")
-	theme_button.tooltip_text = U.t("Giao diện")
-	stats.add_child(theme_button)
-	gap(clampf(size.y * 0.015, 2, 14))
+	# Free space above and below the board is shared equally, so the board sits centred in its area.
+	var top_space := Control.new()
+	top_space.name = "TopSpace"
+	top_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_child(top_space)
 	board = BoardScript.new()
 	board.name = "Board"
 	board.puzzle = puzzle
@@ -794,7 +833,17 @@ func game_screen() -> void:
 	status_label = centered("Vuốt hoặc chạm ô cạnh khoảng trống", 14, Color("f6e7cf"))
 	status_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.4))
 	status_label.add_theme_constant_override("shadow_offset_y", 1)
-	gap(clampf(size.y - content_width() - 380, 4, 60))
+	# Free space goes here, so the controls sit at the bottom of the screen.
+	var spacer := Control.new()
+	spacer.name = "Spacer"
+	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_child(spacer)
+	var undo_row := hrow(null, 12)
+	undo_row.name = "UndoRow"
+	undo_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	undo_row.add_child(history_button("Hoàn tác", "undo", undo_move, "Undo", puzzle.history.is_empty()))
+	undo_row.add_child(history_button("Phục hồi", "redo", redo_move, "Redo", puzzle.redo_stack.is_empty()))
+	gap(14)
 	var actions := hrow(null, 14)
 	actions.alignment = BoxContainer.ALIGNMENT_CENTER
 	var first := game_action("Xem ảnh" if photo_mode else "Trộn số", "eye" if photo_mode else "shuffle", func():
@@ -839,6 +888,17 @@ func game_screen() -> void:
 	if not daily_date.is_empty():
 		centered(U.t("THỬ THÁCH NGÀY ") + display_date(daily_date), 12, Color("ffe0a2"), true)
 
+func history_button(value: String, glyph: String, callback: Callable, node_name: String, disabled: bool) -> Button:
+	var b := U.action(value, callback, false, glyph) as SlideButton
+	b.name = node_name
+	b.custom_minimum_size = Vector2(150, 46)
+	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	b.add_theme_constant_override("icon_max_width", 18)
+	b.add_theme_font_size_override("font_size", 15)
+	b.add_theme_color_override("font_color", U.INK)
+	b.disabled = disabled
+	return b
+
 func pause_game() -> void:
 	show_overlay("Tạm dừng", "Ván chơi đã được lưu. Bạn muốn làm gì?", [["Tiếp tục", func(): pass], ["Về màn hình chính", func(): save_session(); go("home")]], "pause")
 
@@ -849,6 +909,7 @@ func restart_game() -> void:
 	puzzle.cells = initial_cells.duplicate()
 	puzzle.solution = initial_solution.duplicate()
 	puzzle.history.clear()
+	puzzle.redo_stack.clear()
 	puzzle.moves = 0
 	elapsed = 0
 	hints_left = 3
@@ -883,6 +944,14 @@ func undo_move() -> void:
 		board.hint_tile = -1
 		on_moved()
 
+func redo_move() -> void:
+	if puzzle.solved():
+		return
+	board.cancel_drag()
+	if puzzle.redo():
+		board.hint_tile = -1
+		on_moved()
+
 func on_moved() -> void:
 	play_tick()
 	if profile.settings.haptic and OS.has_feature("mobile"):
@@ -902,6 +971,9 @@ func on_moved() -> void:
 		var undo := page.find_child("Undo", true, false) as Button
 		if undo:
 			undo.disabled = puzzle.history.is_empty() or puzzle.solved()
+		var redo := page.find_child("Redo", true, false) as Button
+		if redo:
+			redo.disabled = puzzle.redo_stack.is_empty() or puzzle.solved()
 	save_session()
 
 func on_completed() -> void:
@@ -987,11 +1059,7 @@ func result_screen() -> void:
 			heart.rotation = deg_to_rad(-18 if corner[0] < 0 else 16)
 			stage.add_child(heart)
 			pop_in(heart, 0.6 + corner[0] * 0.2, 0.0)
-			if profile.settings.animation:
-				var beat := heart.create_tween().set_loops()
-				beat.tween_interval(0.9)
-				beat.tween_property(heart, "position:y", heart.position.y - 6, 0.6).set_trans(Tween.TRANS_SINE)
-				beat.tween_property(heart, "position:y", heart.position.y, 0.6).set_trans(Tween.TRANS_SINE)
+			bob(heart, 6.0, 1.4, 0.9 + corner[0] * 0.3)
 		if profile.settings.animation:
 			frame.resized.connect(func(): frame.pivot_offset = frame.size * Vector2(0.5, 1.0))
 			frame.rotation = deg_to_rad(-8)
@@ -1260,7 +1328,7 @@ func list_row(rows: VBoxContainer, glyph: Texture2D, tint: String, title: String
 		rows.add_child(box)
 		box.add_child(line)
 		holder = box
-	line.add_child(U.badge_icon(glyph, Color(tint), 36))
+	line.add_child(U.badge_icon(glyph, Color(tint), 36, false, false))
 	var label := U.text(title, 16, Color("c2412f") if danger else U.INK, danger)
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -1356,7 +1424,6 @@ func settings_screen() -> void:
 	toggle_row(sound, "haptic", "Rung khi di chuyển", white("vibrate"), "2fb5c9")
 	section_title("Trò chơi")
 	var game := list_panel()
-	toggle_row(game, "animation", "Hiệu ứng động", SlideArt.icon("star_white"), "a55eea")
 	toggle_row(game, "numbers", "Hiện số khi xếp ảnh", white("grid"), "1677f2")
 	list_row(game, white("palette"), "ff7a3d", "Giao diện", func(): go("themes"), U.t(U.THEME_NAMES[int(profile.settings.theme)]))
 	list_row(game, white("help"), "34c759", "Hướng dẫn chơi", func(): go("help"))
@@ -1537,6 +1604,7 @@ func daily_screen() -> void:
 	calendar.offset_right = 46
 	calendar.offset_bottom = 92
 	holder.add_child(calendar)
+	pop_in(calendar, 0.0, 0.6)
 	if profile.settings.animation:
 		calendar.pivot_offset = Vector2(46, 80)
 		var swing := calendar.create_tween().set_loops()
@@ -1674,7 +1742,24 @@ func close_overlay() -> void:
 	if is_instance_valid(board):
 		board.locked = screen != "game" or puzzle.solved()
 
+func animate_logo(delta: float) -> void:
+	if not is_instance_valid(logo_node):
+		return
+	var lockup := logo_node.get_parent() as Control
+	logo_clock += delta
+	var t: float = clampf(logo_clock / 0.8, 0.0, 1.0)
+	var k: float = t - 1.0
+	var drop: float = 1.0 + 2.0 * k * k * k + 1.0 * k * k
+	var drift: float = 0.0
+	if logo_clock > 0.8:
+		drift = (1.0 - cos((logo_clock - 0.8) * TAU / 3.6)) * 0.5 * -6.0
+	logo_node.position = lockup.size * Vector2(0.5, 1.0) + Vector2(0, (1.0 - drop) * -40.0 + drift)
+	logo_node.modulate.a = clampf(logo_clock / 0.35, 0.0, 1.0)
+	var squash: float = sin(clampf((logo_clock - 0.5) / 0.4, 0.0, 1.0) * PI) * 0.045
+	logo_node.scale = Vector2(1.0 + squash, 1.0 - squash)
+
 func _process(delta: float) -> void:
+	animate_logo(delta)
 	if screen == "game" and not is_instance_valid(overlay) and puzzle.moves > 0 and not puzzle.solved() and is_instance_valid(board) and not board.preview and not file_dialog.visible and get_window().has_focus():
 		elapsed += delta
 	if is_instance_valid(time_label):
@@ -1739,7 +1824,7 @@ func save_session() -> void:
 	var file := FileAccess.open(SAVE_PATH + ".tmp", FileAccess.WRITE)
 	if not file:
 		return
-	file.store_string(JSON.stringify({"dimension": puzzle.dimension, "cells": puzzle.cells, "history": puzzle.history, "solution": puzzle.solution, "initial": initial_cells, "initial_solution": initial_solution, "moves": puzzle.moves, "elapsed": elapsed, "photo": photo_mode, "picture": picture_index, "won": won_recorded, "record": new_record, "daily": daily_date, "hints": hints_left}))
+	file.store_string(JSON.stringify({"dimension": puzzle.dimension, "cells": puzzle.cells, "history": puzzle.history, "solution": puzzle.solution, "initial": initial_cells, "initial_solution": initial_solution, "moves": puzzle.moves, "elapsed": elapsed, "photo": photo_mode, "picture": picture_index, "won": won_recorded, "record": new_record, "daily": daily_date, "hints": hints_left, "redo": puzzle.redo_stack}))
 	file.close()
 	DirAccess.rename_absolute(ProjectSettings.globalize_path(SAVE_PATH + ".tmp"), ProjectSettings.globalize_path(SAVE_PATH))
 
@@ -1758,6 +1843,7 @@ func load_session() -> void:
 	puzzle.cells = cells
 	puzzle.moves = maxi(0, int(data.get("moves", 0)))
 	puzzle.history = int_array(data.get("history", []))
+	puzzle.redo_stack = int_array(data.get("redo", []))
 	var copy: Array[int] = cells.duplicate()
 	for i in range(puzzle.history.size() - 1, -1, -1):
 		var blank: int = copy.find(0)
@@ -1815,7 +1901,9 @@ func build_sound() -> void:
 	apply_preferences()
 
 func apply_preferences() -> void:
-	U.animations_enabled = bool(profile.settings.animation)
+	# Motion is part of the design and is always on.
+	profile.settings.animation = true
+	U.animations_enabled = true
 	if str(profile.settings.language) in SlideI18n.LANGUAGES:
 		SlideI18n.language = profile.settings.language
 	if is_instance_valid(audio):
@@ -1830,14 +1918,16 @@ func entrance() -> void:
 	if not is_instance_valid(column) or not profile.settings.animation:
 		return
 	var index: int = 0
+	# Settings rows arrive together in one pass; other screens cascade.
+	var stagger: float = 0.0 if screen == "settings" else 0.045
 	for child in column.get_children():
 		if not (child is Control) or (child.custom_minimum_size.y == 0 and not (child is Container) and not (child is Label)):
 			continue
-		if child.name in ["Logo", "VictoryHero", "Board"]:
+		if child.name in ["Logo", "VictoryHero", "Board", "HomeNav"]:
 			continue
 		child.modulate.a = 0.0
 		var tween := child.create_tween()
-		tween.tween_interval(minf(index * 0.045, 0.32))
+		tween.tween_interval(minf(index * stagger, 0.32))
 		tween.tween_callback(func():
 			child.pivot_offset = child.size * 0.5
 			child.scale = Vector2.ONE * 0.94

@@ -21,26 +21,25 @@ func run() -> void:
 	await process_frame
 	app.profile = SlideProfile.new()
 	app.profile.settings.language = args[1]
-	app.profile.settings.animation = false
 	app.active_session = false
 	app.apply_preferences()
 	var screens := ["home", "levels", "gallery", "themes", "settings", "stats", "help", "daily"]
 	for destination in screens:
 		app.go(destination)
-		await create_timer(0.3).timeout
+		await create_timer(1.6).timeout
 		root.get_texture().get_image().save_png("%s/%s-%s.png" % [out, args[1], destination])
 	app.pending_photo = false
 	app.new_game(4)
-	await create_timer(0.3).timeout
+	await create_timer(1.6).timeout
 	root.get_texture().get_image().save_png("%s/%s-game.png" % [out, args[1]])
 	app.pause_game()
-	await create_timer(0.3).timeout
+	await create_timer(1.6).timeout
 	root.get_texture().get_image().save_png("%s/%s-pause.png" % [out, args[1]])
 	app.close_overlay()
 	app.photo_mode = true
 	app.new_record = true
 	app.go("result")
-	await create_timer(0.4).timeout
+	await create_timer(1.8).timeout
 	root.get_texture().get_image().save_png("%s/%s-result.png" % [out, args[1]])
 	app.active_session = false
 	root.remove_child(app)

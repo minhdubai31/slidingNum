@@ -7,6 +7,8 @@ var pointer_inside: bool = false
 var primary: bool = false
 var dark: bool = false
 var blue: bool = false
+# Optional [top, bottom, base] surface colours that override the named tones.
+var palette: Array = []
 var corner_radius: float = 22.0
 var body: ColorRect
 var body_material: ShaderMaterial
@@ -53,9 +55,10 @@ func refresh_surface() -> void:
 	body_material.set_shader_parameter("round_button", round_button)
 	var tone: String = "primary" if primary else ("blue" if blue else ("dark" if dark else "cream"))
 	var colors: Dictionary = {"primary": ["4fe03a", "18b123", "138a1d"], "blue": ["3ea2ff", "1677f2", "0f58b8"], "dark": ["6f665a", "4a433a", "2f2a24"], "cream": ["fffdf8", "f2ebdf", "cdbfa8"]}
-	body_material.set_shader_parameter("top_color", Color(colors[tone][0]))
-	body_material.set_shader_parameter("bottom_color", Color(colors[tone][1]))
-	body_material.set_shader_parameter("base_color", Color(colors[tone][2]))
+	var surface: Array = palette if palette.size() == 3 else colors[tone]
+	body_material.set_shader_parameter("top_color", Color(surface[0]))
+	body_material.set_shader_parameter("bottom_color", Color(surface[1]))
+	body_material.set_shader_parameter("base_color", Color(surface[2]))
 	body_material.set_shader_parameter("disabled_amount", 1.0 if disabled else 0.0)
 	was_disabled = disabled
 

@@ -88,7 +88,7 @@ func run() -> void:
 	await process_frame
 	await process_frame
 	await capture("04-numbers")
-	for node_name in ["PauseButton", "HomeButton"]:
+	for node_name in ["PauseButton"]:
 		var circle := app.page.find_child(node_name, true, false) as Button
 		check(is_equal_approx(circle.size.x, circle.size.y), node_name + " stays square in its container")
 		check(circle.icon_alignment == HORIZONTAL_ALIGNMENT_CENTER, node_name + " icon is centered")
@@ -115,10 +115,7 @@ func run() -> void:
 	check(is_equal_approx(animated.scale.x, 1.0), "Button returns to normal size")
 	app.profile.settings.animation = false
 	app.apply_preferences()
-	animated.press_feedback()
-	check(animated.scale == Vector2.ONE, "Reduced motion disables button animation")
-	app.profile.settings.animation = true
-	app.apply_preferences()
+	check(app.profile.settings.animation and SlideUI.animations_enabled, "Animations are always on")
 	var board = app.board
 	var original: Array[int] = app.puzzle.cells.duplicate()
 	var index: int = app.puzzle.neighbors(app.puzzle.cells.find(0))[0]
@@ -137,6 +134,10 @@ func run() -> void:
 	check(app.puzzle.moves == 1, "Touch tap moves legal tile")
 	app.undo_move()
 	check(app.puzzle.cells == original, "Undo restores board")
+	app.redo_move()
+	check(app.puzzle.moves == 1 and app.puzzle.cells != original, "Redo replays the undone move")
+	app.undo_move()
+	check(app.puzzle.cells == original, "Undo after redo restores board")
 	board.press(point, 0)
 	board.motion(point + board.drag_axis * board.tile_step() * 0.12)
 	board.release_drag(point + board.drag_axis * board.tile_step() * 0.12)
@@ -168,7 +169,7 @@ func run() -> void:
 	await capture("05-pause")
 	app.close_overlay()
 	check(not app.audio.ducked, "Resume restores normal music level")
-	var home_button := app.page.find_child("HomeButton", true, false) as Button
+	var home_button := app.page.find_child("PauseButton", true, false) as Button
 	home_button.pressed.emit()
 	await create_timer(0.12).timeout
 	check(is_instance_valid(app.overlay), "In-game Home button opens pause choices")
@@ -243,7 +244,7 @@ func run() -> void:
 	app.profile.save()
 	var loaded := SlideProfile.new()
 	loaded.load_data()
-	check(not loaded.settings.sound and not loaded.settings.animation and int(loaded.settings.theme) == 1, "Settings persist")
+	check(not loaded.settings.sound and int(loaded.settings.theme) == 1, "Settings persist")
 	check(not loaded.settings.music and is_equal_approx(loaded.settings.music_volume, 0.24), "Music preference and volume persist")
 	app.profile.settings.sound = true
 	app.profile.settings.music = true
@@ -315,7 +316,7 @@ func run() -> void:
 			if dimensions.x == 360:
 				await capture("mobile-" + destination)
 			if destination == "game":
-				for node_name in ["PauseButton", "HomeButton"]:
+				for node_name in ["PauseButton"]:
 					var circle := app.page.find_child(node_name, true, false) as Control
 					check(is_equal_approx(circle.size.x, circle.size.y), node_name + " remains round at " + str(dimensions))
 	app.go("settings")

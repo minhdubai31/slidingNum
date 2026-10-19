@@ -31,7 +31,7 @@ static func panel(color: Color = CREAM, radius: int = 22, bevel: bool = true) ->
 		s.border_color = color.lightened(0.14)
 		s.set_border_width_all(1)
 		s.border_width_top = 1
-		s.shadow_color = Color(0.19, 0.12, 0.04, 0.19)
+		s.shadow_color = Color(0.19, 0.12, 0.04, 0.08)
 		s.shadow_size = 2
 		s.shadow_offset = Vector2(0, 2)
 	return s
@@ -108,7 +108,7 @@ static func chip(value: String, background: Color, foreground: Color, font_size:
 	return pill
 
 # A glossy coloured rounded square holding a white glyph, used by lists and achievements.
-static func badge_icon(texture: Texture2D, color: Color, length: float = 46, muted: bool = false) -> PanelContainer:
+static func badge_icon(texture: Texture2D, color: Color, length: float = 46, muted: bool = false, shadow: bool = true) -> PanelContainer:
 	var square := PanelContainer.new()
 	square.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	square.custom_minimum_size = Vector2.ONE * length
@@ -118,9 +118,12 @@ static func badge_icon(texture: Texture2D, color: Color, length: float = 46, mut
 	skin.set_content_margin_all(length * 0.2)
 	skin.border_color = tint.lightened(0.28)
 	skin.border_width_top = 2
-	skin.shadow_color = Color(tint.darkened(0.45), 0.35)
-	skin.shadow_size = 3
-	skin.shadow_offset = Vector2(0, 2)
+	if shadow:
+		skin.shadow_color = Color(tint.darkened(0.45), 0.16)
+		skin.shadow_size = 3
+		skin.shadow_offset = Vector2(0, 2)
+	else:
+		skin.border_width_top = 0
 	square.add_theme_stylebox_override("panel", skin)
 	var glyph := TextureRect.new()
 	glyph.texture = texture
@@ -145,7 +148,7 @@ static func icon(name: String, color: String = "493929") -> Texture2D:
 		icons[key] = load("res://assets/third_party/fluent/star.png")
 		return icons[key]
 	var colored: Dictionary = {"bulb": "1f4a1", "trophy": "1f3c6", "calendar": "1f4c5", "palette": "1f3a8", "stats": "1f4ca", "star": "2b50", "bolt": "26a1"}
-	var solid: Dictionary = {"back": "chevron-left", "chevron": "chevron-right", "play": "play", "pause": "pause", "home": "house", "restart": "rotate-left", "shuffle": "shuffle", "eye": "eye", "bulb": "lightbulb", "undo": "arrow-rotate-left", "clock": "stopwatch", "steps": "shoe-prints", "grid": "table-cells", "stats": "chart-simple", "trophy": "trophy", "star": "star", "calendar": "calendar-days", "settings": "gear", "palette": "palette", "sound": "volume-high", "music": "music", "check": "check", "help": "circle-question", "image": "image", "close": "xmark", "lock": "lock", "leaf": "leaf", "bolt": "bolt", "trash": "trash-can", "vibrate": "mobile-screen-button", "toggle_on": "toggle-on", "toggle_off": "toggle-off", "info": "circle-info"}
+	var solid: Dictionary = {"back": "chevron-left", "chevron": "chevron-right", "play": "play", "pause": "pause", "home": "house", "restart": "rotate-left", "shuffle": "shuffle", "eye": "eye", "bulb": "lightbulb", "undo": "arrow-rotate-left", "redo": "arrow-rotate-left", "clock": "stopwatch", "steps": "shoe-prints", "grid": "table-cells", "stats": "chart-simple", "trophy": "trophy", "star": "star", "calendar": "calendar-days", "settings": "gear", "palette": "palette", "sound": "volume-high", "music": "music", "check": "check", "help": "circle-question", "image": "image", "close": "xmark", "lock": "lock", "leaf": "leaf", "bolt": "bolt", "trash": "trash-can", "vibrate": "mobile-screen-button", "toggle_on": "toggle-on", "toggle_off": "toggle-off", "info": "circle-info"}
 	var use_color: bool = colored.has(name) and color != "ffffff" and color != "fff8eb"
 	var path: String = "res://assets/third_party/noto/%s.svg" % colored[name] if use_color else "res://assets/third_party/fontawesome/%s.svg" % solid.get(name, "circle-question")
 	var imported: Texture2D = load(path)
@@ -153,6 +156,8 @@ static func icon(name: String, color: String = "493929") -> Texture2D:
 	if image.is_compressed():
 		image.decompress()
 	image.convert(Image.FORMAT_RGBA8)
+	if name == "redo":
+		image.flip_x()
 	var factor: float = 64.0 / maxf(image.get_width(), image.get_height())
 	image.resize(maxi(1, int(image.get_width() * factor)), maxi(1, int(image.get_height() * factor)), Image.INTERPOLATE_LANCZOS)
 	if not use_color:

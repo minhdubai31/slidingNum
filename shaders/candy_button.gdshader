@@ -34,11 +34,11 @@ void fragment() {
 	if (round_button) { radius = face_size.x * 0.5; }
 	float face_d = rounded_box(p - center, face_size * 0.5, radius);
 	float base_d = rounded_box(p - center - vec2(0.0, 1.8 - press_depth), face_size * 0.5, radius);
-	float shadow_d = rounded_box(p - center - vec2(0.0, 4.5 - press_depth * 1.5), face_size * 0.5, radius);
+	float shadow_d = rounded_box(p - center - vec2(0.0, 3.0 - press_depth), face_size * 0.5, radius);
 	float aa = max(fwidth(face_d), 0.7);
 	float face_mask = 1.0 - smoothstep(-aa, aa, face_d);
 	float base_mask = 1.0 - smoothstep(-aa, aa, base_d);
-	float shadow_mask = (1.0 - smoothstep(-2.0, 7.0, shadow_d)) * 0.22;
+	float shadow_mask = (1.0 - smoothstep(-1.5, 4.5, shadow_d)) * 0.08;
 	vec3 base = mix(base_color.rgb, vec3(0.74, 0.70, 0.64), disabled_amount * 0.6);
 	vec3 color = mix(vec3(0.15, 0.10, 0.05), base, base_mask);
 	float alpha = max(shadow_mask, base_mask);

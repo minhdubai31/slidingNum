@@ -18,7 +18,7 @@ Game xếp số / xếp ảnh cho màn hình dọc, viết bằng Godot 4.7.2 v�
 6. Home/tạm dừng chỉ có **Tiếp tục** và **Về màn hình chính**; giữ nguyên ván khi quay về.
 7. Kết quả số/ảnh, kỷ lục thời gian, chơi tiếp hoặc chọn cấp độ.
 8. Chọn 8 giao diện: gỗ cổ điển, gỗ tối, gốm, cẩm thạch, kim loại, kính, đất sét, neon.
-9. Cài đặt chia nhóm (Âm thanh / Trò chơi / Khác): hiệu ứng âm thanh, nhạc nền, âm lượng riêng, rung, hiệu ứng động, số gợi ý trên ảnh và xóa dữ liệu có xác nhận.
+9. Cài đặt chia nhóm (Âm thanh / Trò chơi / Khác): hiệu ứng âm thanh, nhạc nền, âm lượng riêng, rung, số gợi ý trên ảnh và xóa dữ liệu có xác nhận.
 10. Thống kê riêng cho xếp số/xếp ảnh và 4 thành tích mở theo kết quả thật.
 11. Hướng dẫn có ví dụ bàn gần hoàn thành.
 12. Thử thách hằng ngày: bàn 3 × 3 cố định theo ngày trên thiết bị và lịch hoàn thành 7 ngày.
@@ -53,7 +53,7 @@ Game xếp số / xếp ảnh cho màn hình dọc, viết bằng Godot 4.7.2 v�
 
 Icon điều khiển dùng SVG tải từ **Font Awesome Free 6.7.2**; các icon màu dùng **Google Noto Emoji v2.047**. File gốc giữ nguyên trong `assets/third_party/`. Nguồn và giấy phép được ghi tại **assets/SOURCES.md** và trong mục Cài đặt → Nguồn tài nguyên.
 
-Nút có mặt chuyển sắc và gờ dưới, co nhẹ khi giữ rồi nảy về khi thả. Nhấn nhanh được chặn kích hoạt lặp trong lúc chuyển màn. Tắt Hiệu ứng động sẽ bỏ chuyển động của nút và ô chơi.
+Nút có mặt chuyển sắc và gờ dưới, co nhẹ khi giữ rồi nảy về khi thả. Nhấn nhanh được chặn kích hoạt lặp trong lúc chuyển màn. Hiệu ứng động luôn bật; đây là một phần của thiết kế.
 
 Tiếng kéo và đặt/trả ô dùng bản ghi **Board Game Wood Piece Slide — Jeff Final Boss**, đã lọc bớt phần chói và làm mềm đầu/cuối. Một cử chỉ kéo chỉ phát một lần, không lặp tiếng scratch theo quãng đường. **Kenney Interface Sounds** tiếp tục dùng cho nút bấm và hoàn thành. Nhạc nền **Exploration Theme — Cleyton Kauffman** phát lặp. Âm lượng nhạc và hiệu ứng chỉnh riêng; nhạc nhỏ đi khi mở hộp thoại và dừng khi ứng dụng mất focus. Các tài nguyên âm thanh dùng CC0, bản ghi nguồn đi kèm dự án.
 

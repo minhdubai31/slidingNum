@@ -4,6 +4,7 @@ extends RefCounted
 var dimension: int = 4
 var cells: Array[int] = []
 var history: Array[int] = []
+var redo_stack: Array[int] = []
 var moves: int = 0
 var solution: Array[int] = []
 
@@ -14,6 +15,7 @@ func reset(n: int, mix: bool = true, shuffle_seed: int = -1) -> void:
 		cells.append(i)
 	cells.append(0)
 	history.clear()
+	redo_stack.clear()
 	moves = 0
 	solution.clear()
 	if mix:
@@ -60,6 +62,7 @@ func slide(index: int) -> bool:
 	else:
 		solution.push_front(value)
 	history.append(blank)
+	redo_stack.clear()
 	cells[blank] = cells[index]
 	cells[index] = 0
 	moves += 1
@@ -70,6 +73,8 @@ func undo() -> bool:
 		return false
 	var previous_blank: int = history.pop_back()
 	var blank: int = cells.find(0)
+	# Redoing slides the tile now at the gap's old spot back into it.
+	redo_stack.append(blank)
 	var value: int = cells[previous_blank]
 	if not solution.is_empty() and solution[0] == value:
 		solution.pop_front()
@@ -78,6 +83,17 @@ func undo() -> bool:
 	cells[blank] = cells[previous_blank]
 	cells[previous_blank] = 0
 	moves = maxi(0, moves - 1)
+	return true
+
+# Replays the most recently undone move; a new move clears the redo chain.
+func redo() -> bool:
+	if redo_stack.is_empty():
+		return false
+	var remaining: Array[int] = redo_stack.duplicate()
+	var index: int = remaining.pop_back()
+	if not slide(index):
+		return false
+	redo_stack = remaining
 	return true
 
 func solved() -> bool:
