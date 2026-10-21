@@ -44,7 +44,13 @@ func run() -> void:
 	var url := "https://example.supabase.co/storage/v1/object/public/pictures/popup/1.png"
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(SlideCatalogue.FILES_DIR))
 	image.save_png(SlideCatalogue.picture_path(url))
-	app.catalogue.pending = {"version": "popup-test-2", "topics": [{"name": "Updated", "pictures": [{"id": "popup", "url": url}]}]}
+	var home_url := url.replace("popup/1.png", "_backgrounds/home--popup.png")
+	var game_url := url.replace("popup/1.png", "_backgrounds/game--popup.png")
+	var theme_url := url.replace("popup/1.png", "_backgrounds/theme-3--popup.png")
+	for background_url in [home_url, game_url, theme_url]:
+		image.save_png(SlideCatalogue.picture_path(background_url))
+	app.profile.settings.theme = 3
+	app.catalogue.pending = {"version": "popup-test-2", "topics": [{"name": "Updated", "pictures": [{"id": "popup", "url": url}]}], "backgrounds": {"home": {"url": home_url}, "game": {"url": game_url}, "themes": {"3": {"url": theme_url}}}}
 	if is_instance_valid(app.overlay):
 		var reload_buttons: Array[Node] = app.overlay.find_children("*", "Button", true, false)
 		if not reload_buttons.is_empty():
@@ -52,9 +58,17 @@ func run() -> void:
 	await create_timer(0.15).timeout
 	check(app.screen == "home" and app.picture_keys == ["remote:popup"] and app.catalogue.active.get("version") == "popup-test-2", "Reload activates the downloaded catalogue and refreshes Home")
 	check(not app.catalogue.has_pending() and not is_instance_valid(app.overlay), "Reload clears the staged update and popup")
+	check(app.backdrop.scenic == app.background_textures.home, "Reload immediately updates the Home background")
+	app.pending_photo = true
+	app.pending_picture = 0
+	app.new_game(3)
+	check(app.backdrop.game_override == app.background_textures["theme-3"] and app.backdrop.photo != null, "Photo games use the selected theme background when configured")
+	app.profile.settings.theme = 1
+	app.go("game", false)
+	check(app.backdrop.game_override == app.background_textures.game, "Changing theme chooses the shared game background when no theme override exists")
 	root.remove_child(app)
 	app.free()
 	await process_frame
 	await process_frame
-	print("PASS: Home update popup, Later, and waiting for another overlay" if failures == 0 else "FAILED: %d checks" % failures)
+	print("PASS: Home update popup, Later, waiting for another overlay, and background refresh" if failures == 0 else "FAILED: %d checks" % failures)
 	quit(0 if failures == 0 else 1)

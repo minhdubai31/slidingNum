@@ -158,6 +158,10 @@ static func picture_urls(manifest: Dictionary) -> Array[String]:
 	for topic in manifest.get("topics", []):
 		for picture in topic.get("pictures", []):
 			urls.append(str(picture.get("url", "")))
+	var backgrounds: Dictionary = manifest.get("backgrounds", {})
+	for slot in [backgrounds.get("home"), backgrounds.get("game")] + backgrounds.get("themes", {}).values():
+		if slot is Dictionary and not str(slot.get("url", "")).is_empty():
+			urls.append(str(slot.url))
 	return urls
 
 static func files_of(manifest: Dictionary) -> Array[String]:

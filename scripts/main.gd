@@ -36,6 +36,7 @@ var topic_names: Array[String] = []
 var topic_members: Array = []
 var catalogue: SlideCatalogue
 var catalogue_offered: String = ""
+var background_textures: Dictionary = {}
 var elapsed: float = 0.0
 var photo_mode: bool = false
 var picture_index: int = 0
@@ -145,6 +146,7 @@ func go(destination: String, animate: bool = true) -> void:
 	status_label = null
 	hint_button = null
 	backdrop.kind = "scenic" if screen in ["home", "splash"] else ("game" if screen == "game" else ("result" if screen == "result" else "paper"))
+	apply_backgrounds()
 	backdrop.photo = current_picture() if screen == "game" and photo_mode else null
 	backdrop.animated = bool(profile.settings.animation)
 	backdrop.queue_redraw()
@@ -899,6 +901,26 @@ func personal_picture_path(id: int) -> String:
 func load_catalogue(manifest: Dictionary) -> void:
 	if not build_catalogue(manifest):
 		build_bundled()
+	load_backgrounds(manifest.get("backgrounds", {}))
+
+func load_backgrounds(config: Dictionary) -> void:
+	background_textures.clear()
+	var slots := {"home": config.get("home"), "game": config.get("game")}
+	for theme_id in config.get("themes", {}):
+		slots["theme-" + str(theme_id)] = config.themes[theme_id]
+	for slot in slots:
+		if not slots[slot] is Dictionary:
+			continue
+		var path := SlideCatalogue.picture_path(str(slots[slot].get("url", "")))
+		if not FileAccess.file_exists(path):
+			continue
+		var image := Image.load_from_file(path)
+		if image != null and not image.is_empty():
+			background_textures[slot] = ImageTexture.create_from_image(image)
+
+func apply_backgrounds() -> void:
+	backdrop.scenic = background_textures.get("home", preload("res://assets/home-soft.png"))
+	backdrop.game_override = background_textures.get("theme-%d" % int(profile.settings.theme), background_textures.get("game"))
 
 # Builds the catalogue from downloaded files. Returns false, leaving the current catalogue untouched, if any file is missing.
 func build_catalogue(manifest: Dictionary) -> bool:

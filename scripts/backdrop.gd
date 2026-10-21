@@ -2,6 +2,7 @@ extends Control
 
 var scenic: Texture2D
 var table: Texture2D
+var game_override: Texture2D
 var kind: String = "scenic"
 var result_glow: GradientTexture2D
 var paper_glow: GradientTexture2D
@@ -34,7 +35,9 @@ func _draw() -> void:
 		draw_texture_rect(paper_glow, Rect2(Vector2.ZERO, size), false)
 		return
 	var background: Texture2D = table if kind == "game" and table else scenic
-	if kind == "game" and photo:
+	if kind == "game" and game_override:
+		background = game_override
+	elif kind == "game" and photo:
 		if photo_source != photo.get_instance_id():
 			var soft := photo.get_image()
 			if soft.is_compressed():

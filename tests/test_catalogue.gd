@@ -18,7 +18,7 @@ func _init() -> void:
 	backup_user_catalogue()
 	run_checks()
 	restore_user_catalogue()
-	print("PASS: catalogue naming, legacy record keys, building from files, applying a staged update" if failures == 0 else "FAILED: %d checks" % failures)
+	print("PASS: catalogue naming, legacy record keys, building from files, applying a staged update, background priority and staging" if failures == 0 else "FAILED: %d checks" % failures)
 	quit(0 if failures == 0 else 1)
 
 func check(condition: bool, message: String) -> void:
@@ -80,6 +80,42 @@ func run_checks() -> void:
 	repair.fetching = true
 	repair.on_request_completed(HTTPRequest.RESULT_SUCCESS, 500, PackedStringArray(), PackedByteArray())
 	check(not repair.fetching and repair.candidate.is_empty() and str(repair.pending.version) == old_version, "HTTP failure preserves the previous pending update")
+	# Backgrounds share the staged download/cache lifecycle with puzzle pictures.
+	var home_url := BASE + "_backgrounds/home--1000-test.png"
+	var shared_url := BASE + "_backgrounds/game--1000-test.png"
+	var theme_url := BASE + "_backgrounds/theme-3--1000-test.png"
+	var backgrounds := {"home": {"url": home_url}, "game": {"url": shared_url}, "themes": {"3": {"url": theme_url}}}
+	var themed := fresh.duplicate(true)
+	themed["version"] = "background-v1"
+	themed["backgrounds"] = backgrounds
+	for url in [home_url, shared_url, theme_url]:
+		write_png(SlideCatalogue.picture_path(url), Color.BLUE)
+	check(SlideCatalogue.picture_urls(themed).size() == 6, "Home, game and theme backgrounds join the download manifest")
+	check(SlideCatalogue.files_ready(themed), "All background assets must be downloaded")
+	app.load_backgrounds(backgrounds)
+	check(app.background_textures.size() == 3, "Configured backgrounds load from local files without cropping")
+	var backdrop = preload("res://scripts/backdrop.gd").new()
+	app.backdrop = backdrop
+	app.profile.settings.theme = 3
+	app.apply_backgrounds()
+	check(backdrop.scenic == app.background_textures.home, "Home uses its configured background")
+	check(backdrop.game_override == app.background_textures["theme-3"], "Selected theme takes priority over the shared game background")
+	app.profile.settings.theme = 1
+	app.apply_backgrounds()
+	check(backdrop.game_override == app.background_textures.game, "Themes without a background inherit the shared game background")
+	app.load_backgrounds({})
+	app.apply_backgrounds()
+	check(backdrop.game_override == null and backdrop.scenic == preload("res://assets/home-soft.png"), "Removing configuration restores bundled Home and original game rendering")
+	# A background-only change must be downloaded and offered as a content update.
+	repair.pending = {}
+	repair.active = fresh
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(SlideCatalogue.picture_path(theme_url)))
+	repair.on_manifest(JSON.stringify(themed).to_utf8_buffer())
+	check(repair.current_url == theme_url and ready_count[0] == 1, "A missing theme background delays the update popup")
+	repair.on_file(downloaded.save_png_to_buffer())
+	check(ready_count[0] == 2 and repair.pending.version == "background-v1", "Background-only updates are offered after download")
+	check(repair.apply_pending() and FileAccess.file_exists(SlideCatalogue.picture_path(theme_url)), "Applying an update retains its background assets during pruning")
+	backdrop.free()
 	repair.free()
 	catalogue.free()
 	app.free()

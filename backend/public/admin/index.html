@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
-  <title>Quản lý ảnh · Slide Puzzle</title>
+  <title>Quản lý nội dung · Slide Puzzle</title>
   <style>
     :root {
       --bg: #f6efe3;
@@ -144,12 +144,17 @@
     .empty { color: var(--muted); padding: 24px 0; text-align: center; }
     .login { max-width: 420px; margin: 40px auto; }
     .login form { display: grid; gap: 10px; }
+    .content-nav { grid-column: 1 / -1; }
+    .content-nav button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+    #background-panel { grid-column: 1 / -1; }
+    .background-card img { aspect-ratio: 9 / 16; max-height: 280px; }
+    .background-placeholder { min-height: 180px; display: grid; place-items: center; text-align: center; padding: 16px; border: 1px dashed var(--line); border-radius: 8px; }
     .hidden { display: none !important; }
   </style>
 </head>
 <body>
   <header>
-    <h1>Quản lý ảnh theo chủ đề</h1>
+    <h1>Quản lý nội dung Slide Puzzle</h1>
     <div class="row">
       <span class="muted" id="who"></span>
       <button id="signout" class="hidden">Đăng xuất</button>
@@ -169,7 +174,11 @@
   </div>
 
   <main id="app" class="hidden">
-    <section>
+    <nav class="row content-nav" aria-label="Loại nội dung">
+      <button id="view-topics" aria-pressed="true">Ảnh chủ đề</button>
+      <button id="view-backgrounds" aria-pressed="false">Hình nền</button>
+    </nav>
+    <section id="topic-panel">
       <h2>Chủ đề</h2>
       <ul class="topic-list" id="topics"></ul>
       <form id="new-topic" class="row">
@@ -181,6 +190,13 @@
     <section id="detail">
       <p class="empty">Chọn hoặc tạo một chủ đề.</p>
     </section>
+    <section id="background-panel" class="hidden">
+      <h2>Hình nền</h2>
+      <p class="muted">PNG, JPEG hoặc WebP, tối đa 4 MB. Nên dùng ảnh dọc 9:16; ảnh được phóng đầy màn hình và cắt phần dư ở giữa.</p>
+      <p class="muted">Màn chơi ưu tiên nền của theme → nền màn chơi chung → nền có sẵn (hoặc ảnh đang chơi được làm mờ). Ảnh cấu hình áp dụng cho cả xếp số và xếp ảnh.</p>
+      <p class="muted">Người chơi nhận thay đổi khi mở app và chọn “Tải lại” tại Home sau khi tải ngầm hoàn tất.</p>
+      <div id="backgrounds" class="grid"></div>
+    </section>
   </main>
 
   <p class="status" id="status" role="status" style="padding: 0 20px;"></p>
@@ -188,7 +204,8 @@
   <script>
     const MAX_BYTES = 4 * 1024 * 1024;
     const ACCEPT = ['image/png', 'image/jpeg', 'image/webp'];
-    const state = { token: '', topics: [], selected: null };
+    const THEME_NAMES = ['Gỗ cổ điển', 'Gỗ tối', 'Gốm sứ', 'Đá cẩm thạch', 'Kim loại', 'Kính mờ', 'Đất sét', 'Neon'];
+    const state = { token: '', topics: [], selected: null, view: 'topics', backgrounds: {}, backgroundBusy: '' };
 
     // ---- small DOM helper ------------------------------------------------
     function h(tag, props = {}, ...children) {
@@ -252,8 +269,9 @@
     }
 
     async function load() {
-      const data = await api('GET', '/api/admin/topics');
+      const [data, config] = await Promise.all([api('GET', '/api/admin/topics'), api('GET', '/api/admin/backgrounds')]);
       state.topics = data.topics;
+      state.backgrounds = config.backgrounds;
       if (!state.topics.some((t) => t.id === state.selected)) {
         state.selected = state.topics[0]?.id ?? null;
       }
@@ -264,6 +282,61 @@
     function render() {
       renderTopics();
       renderDetail();
+      renderBackgrounds();
+      const backgroundsVisible = state.view === 'backgrounds';
+      document.getElementById('topic-panel').classList.toggle('hidden', backgroundsVisible);
+      document.getElementById('detail').classList.toggle('hidden', backgroundsVisible);
+      document.getElementById('background-panel').classList.toggle('hidden', !backgroundsVisible);
+      document.getElementById('view-topics').setAttribute('aria-pressed', String(!backgroundsVisible));
+      document.getElementById('view-backgrounds').setAttribute('aria-pressed', String(backgroundsVisible));
+    }
+
+    function renderBackgrounds() {
+      const config = state.backgrounds;
+      const slots = [
+        ['home', 'Màn Home', config.home],
+        ['game', 'Màn chơi · nền chung', config.game],
+        ...THEME_NAMES.map((name, i) => [`theme-${i}`, name, config.themes?.[String(i)]]),
+      ];
+      document.getElementById('backgrounds').replaceChildren(...slots.map(([slot, title, background]) => {
+        const inherited = slot.startsWith('theme-') ? config.game : null;
+        const preview = background || inherited;
+        const resetLabel = slot.startsWith('theme-') ? 'Dùng nền chung' : 'Dùng nền có sẵn';
+        const fallback = inherited ? 'Đang dùng nền màn chơi chung' : 'Đang dùng nền có sẵn';
+        const busy = Boolean(state.backgroundBusy);
+        const input = h('input', { type: 'file', accept: ACCEPT.join(','), hidden: true,
+          onchange: (e) => changeBackground(slot, e.target.files[0]) });
+        return h('div', { class: 'card background-card' },
+          h('h3', { style: 'margin: 0;' }, title),
+          preview ? h('img', { src: preview.url, alt: `Hình nền ${title}`, loading: 'lazy' })
+            : h('div', { class: 'background-placeholder muted' }, fallback),
+          h('span', { class: 'muted' }, background ? `Nền riêng · ${formatKB(background.bytes)}` : fallback),
+          h('button', { disabled: busy, onclick: () => input.click() }, state.backgroundBusy === slot ? 'Đang lưu…' : background ? 'Thay ảnh nền' : 'Chọn ảnh nền'),
+          h('button', { disabled: busy || !background, onclick: () => changeBackground(slot, null, true) }, resetLabel),
+          input,
+        );
+      }));
+    }
+
+    async function changeBackground(slot, file, reset = false) {
+      if (state.backgroundBusy || (!file && !reset)) return;
+      if (file) {
+        const problem = checkFile(file);
+        if (problem) return setStatus(`${file.name}: ${problem}`, 'err');
+      }
+      state.backgroundBusy = slot;
+      renderBackgrounds();
+      setStatus('Đang lưu hình nền…');
+      try {
+        await api(reset ? 'DELETE' : 'PUT', `/api/admin/backgrounds/${slot}`, file ? { file } : {});
+        await load();
+        setStatus(reset ? 'Đã bỏ nền riêng. App sẽ dùng nền dự phòng.' : 'Đã cập nhật hình nền. App sẽ tải ngầm ở lần mở tiếp theo.', 'ok');
+      } catch (err) {
+        if (err.message !== 'Unauthorized') setStatus(err.message, 'err');
+      } finally {
+        state.backgroundBusy = '';
+        renderBackgrounds();
+      }
     }
 
     function renderTopics() {
@@ -479,6 +552,9 @@
       document.getElementById('login-error').textContent = '';
       enter();
     });
+    for (const view of ['topics', 'backgrounds']) {
+      document.getElementById('view-' + view).addEventListener('click', () => { state.view = view; render(); });
+    }
     document.getElementById('signout').addEventListener('click', () => signOut('Đã đăng xuất.'));
     document.getElementById('new-topic').addEventListener('submit', (e) => {
       e.preventDefault();

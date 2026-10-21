@@ -73,7 +73,7 @@ Trang chỉ gọi API cùng origin, không có dependency bên ngoài.
 
 ### `GET /api/topics` (công khai)
 
-Game gọi endpoint này để lấy danh sách chủ đề đang hiện. Chủ đề ẩn hoặc không có ảnh hiện thị sẽ bị bỏ qua.
+Game gọi endpoint này để lấy danh sách chủ đề đang hiện và cấu hình hình nền. Chủ đề ẩn hoặc không có ảnh hiện thị sẽ bị bỏ qua.
 
 ```json
 {
@@ -99,8 +99,8 @@ Game gọi endpoint này để lấy danh sách chủ đề đang hiện. Chủ 
 }
 ```
 
-- `version` đổi mỗi khi danh sách thay đổi. Client chỉ cần so sánh chuỗi này để biết có cần tải lại không.
-- Response có `Cache-Control: s-maxage=60`: thay đổi có thể mất tối đa khoảng 1 phút để hiện ra.
+- `version` đổi mỗi khi chủ đề, ảnh hoặc hình nền thay đổi. Client chỉ cần so sánh chuỗi này để biết có cần tải lại không.
+- Response có `Cache-Control: no-store` để mỗi lần mở app kiểm tra nội dung hiện tại.
 - `url` đổi khi thay file ảnh, nên có thể cache theo `url` mà không bị lỗi cũ.
 
 ### Route quản trị
@@ -117,6 +117,9 @@ Mọi route cần header `Authorization: Bearer <ADMIN_TOKEN>`.
 | PUT | `/api/admin/pictures/:id` | Byte của file ảnh | Thay file ảnh |
 | PATCH | `/api/admin/pictures/:id` | JSON `{ "position"?, "active"?, "topic_id"? }` | Sửa ảnh; `topic_id` để chuyển sang chủ đề khác |
 | DELETE | `/api/admin/pictures/:id` | | Xóa ảnh và file trong storage |
+| GET | `/api/admin/backgrounds` | | Cấu hình hình nền Home, nền chơi chung và theo theme |
+| PUT | `/api/admin/backgrounds/:slot` | Byte của file ảnh | Tải hoặc thay hình nền (tối đa 4 MB) |
+| DELETE | `/api/admin/backgrounds/:slot` | | Bỏ nền riêng để dùng nền dự phòng |
 
 Ví dụ:
 
@@ -179,3 +182,37 @@ Kiểm thử luồng tải và popup (dùng thư mục dữ liệu riêng):
 XDG_DATA_HOME=/tmp/slide-catalogue-check godot --headless --path . --script tests/test_catalogue.gd
 XDG_DATA_HOME=/tmp/slide-popup-check godot --headless --path . --script tests/test_catalogue_popup.gd -- --test-mode
 ```
+
+## Cấu hình hình nền
+
+Trong `/admin/`, chọn tab **Hình nền**:
+
+- **Màn Home**: nền Home và màn khởi động.
+- **Màn chơi · nền chung**: nền mặc định cho cả xếp số và xếp ảnh.
+- **Theo theme**: nền riêng cho Gỗ cổ điển, Gỗ tối, Gốm sứ, Đá cẩm thạch, Kim loại, Kính mờ, Đất sét và Neon.
+
+Chọn **Chọn ảnh nền** / **Thay ảnh nền** để tải ảnh PNG, JPEG hoặc WebP tối đa 4 MB.
+Nên dùng ảnh dọc 9:16; app phóng ảnh đầy màn hình, giữ tỷ lệ và cắt phần dư ở giữa.
+Nút **Dùng nền chung** bỏ ảnh riêng của theme; nút **Dùng nền có sẵn** bỏ cấu hình Home hoặc nền chơi chung.
+
+Màn chơi ưu tiên nền của theme → nền chơi chung → nền có sẵn.
+Khi không cấu hình, xếp số dùng nền bàn hiện tại và xếp ảnh dùng ảnh đang chơi được làm mờ như trước.
+Nền Home không cấu hình sẽ dùng ảnh có sẵn trong app. Màn kết quả và các màn phụ giữ cách hiển thị hiện tại.
+
+`GET /api/topics` có thêm trường:
+
+```json
+{
+  "backgrounds": {
+    "home": { "url": "https://.../pictures/_backgrounds/home--<timestamp>-<uuid>.png", "bytes": 123456 },
+    "game": null,
+    "themes": { "0": null, "1": null, "2": null, "3": null, "4": null, "5": null, "6": null, "7": null }
+  }
+}
+```
+
+API quản trị nhận `slot` là `home`, `game`, hoặc `theme-0` đến `theme-7` (theo thứ tự theme ở trên).
+Ảnh được lưu trong thư mục `_backgrounds/` của bucket `pictures` hiện có, tách khỏi ảnh puzzle.
+Không cần chạy thêm SQL hoặc mở quyền ghi công khai. Mỗi lần thay ảnh tạo URL mới để tránh cache cũ.
+App tải nền ngầm cùng catalogue, chỉ áp dụng sau khi người dùng chọn **Tải lại** ở Home và dùng được khi offline.
+Cần build lại app để sử dụng tính năng hình nền.
