@@ -31,6 +31,24 @@ func run() -> void:
 	check(preview.elapsed == time and preview.puzzle.cells == cells, "Preview does not run a game timer or change the board")
 	preview.go("settings")
 	check(preview.screen == "game", "App navigation cannot leave the selected preview screen")
+	var draft_image := Image.create(16, 16, false, Image.FORMAT_RGBA8)
+	draft_image.fill(Color.RED)
+	var draft := ImageTexture.create_from_image(draft_image)
+	preview.draft_slot = "home"
+	preview.draft_texture = draft
+	preview.on_preview_selected(["home", 3, "vi", 0])
+	check(preview.backdrop.scenic == draft, "Unsaved Home background is rendered without changing catalogue")
+	preview.draft_slot = "theme-3"
+	preview.on_preview_selected(["game", 3, "vi", 0])
+	check(preview.backdrop.game_override == draft, "Unsaved theme background appears on its game preview")
+	preview.draft_texture = null
+	preview.background_textures["game"] = draft
+	preview.show_preview()
+	check(preview.backdrop.game_override == draft, "Staged theme reset previews the shared background")
+	preview.background_textures.clear()
+	preview.draft_slot = ""
+	preview.on_preview_selected(["home", 0, "vi", 0])
+	check(preview.backdrop.scenic == preload("res://assets/home-soft.png"), "Discarding a draft restores the configured background")
 	preview.save_session()
 	preview.profile.save()
 	check(not FileAccess.file_exists(preview.SAVE_PATH) and not FileAccess.file_exists(SlideProfile.PATH), "Preview does not create game saves or a player profile")

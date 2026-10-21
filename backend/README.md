@@ -193,7 +193,8 @@ Trong `/admin/`, chọn tab **Hình nền**:
 
 Chọn **Chọn ảnh nền** / **Thay ảnh nền** để tải ảnh PNG, JPEG hoặc WebP tối đa 4 MB.
 Nên dùng ảnh dọc 9:16; app phóng ảnh đầy màn hình, giữ tỷ lệ và cắt phần dư ở giữa.
-Nút **Dùng nền chung** bỏ ảnh riêng của theme; nút **Dùng nền có sẵn** bỏ cấu hình Home hoặc nền chơi chung.
+Sau khi chọn ảnh, xem trước ngay trong hộp thoại rồi chọn **Lưu hình nền** hoặc **Hủy**. Ảnh chỉ được upload khi bấm Lưu.
+Nút **Dùng nền chung** / **Dùng nền có sẵn** cũng mở preview nền dự phòng trước khi xác nhận lưu.
 
 Màn chơi ưu tiên nền của theme → nền chơi chung → nền có sẵn.
 Khi không cấu hình, xếp số dùng nền bàn hiện tại và xếp ảnh dùng ảnh đang chơi được làm mờ như trước.
@@ -217,11 +218,13 @@ Không cần chạy thêm SQL hoặc mở quyền ghi công khai. Mỗi lần th
 App tải nền ngầm cùng catalogue, chỉ áp dụng sau khi người dùng chọn **Tải lại** ở Home và dùng được khi offline.
 Cần build lại app để sử dụng tính năng hình nền.
 
-## Preview màn hình Godot Web
+## Preview hình nền trước khi lưu
 
-Mở `/preview/` hoặc liên kết **Preview màn hình** trên trang quản trị để xem giao diện Godot thật.
-Chọn màn hình, theme, ảnh và ngôn ngữ bằng thanh công cụ. Đây là bản xem trước, không có thao tác chơi hoặc lưu ván.
-Sau khi cập nhật hình nền, chọn **Làm mới nội dung**; các ảnh tải xong được tự động áp dụng vào preview.
+Chọn ảnh tại tab **Hình nền** để mở preview Godot ngay trong hộp thoại quản trị.
+Không mở trang preview riêng. File nháp được truyền trực tiếp cho iframe cùng origin, không gửi token quản trị hoặc upload ảnh.
+Bấm **Lưu hình nền** mới gọi PUT (hoặc DELETE khi bỏ nền riêng). **Hủy** bỏ ảnh nháp, giữ nguyên cấu hình đang dùng.
+Nếu lưu thất bại, hộp thoại giữ ảnh nháp để thử lại hoặc hủy. Ảnh không đọc được bị từ chối trước bước preview.
+Danh sách nền dùng 4 cột desktop, 2 cột ở màn hình vừa và 1 cột trên điện thoại nhỏ.
 
 Trước khi deploy, từ thư mục gốc repo chạy `python3 tools/export_web.py` để tạo `backend/public/preview/`.
 File export không nằm trong Git; deploy từ checkout mới cần tạo lại chúng.

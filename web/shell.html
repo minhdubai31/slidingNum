@@ -8,6 +8,7 @@
   $GODOT_HEAD_INCLUDE
   <style>
     * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
     body { margin: 0; background: #211b16; color: #f4ede1; font: 14px/1.5 system-ui, sans-serif; }
     header { padding: 12px 20px; background: #30271f; border-bottom: 1px solid #4d3f32; }
     .toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; max-width: 1200px; margin: auto; }
@@ -21,6 +22,9 @@
     main { display: grid; place-items: center; padding: 16px; }
     #phone { position: relative; width: min(430px, calc(100vw - 32px)); aspect-ratio: 430 / 900; overflow: hidden; background: #f4ede1; border-radius: 12px; box-shadow: 0 12px 40px #0005; }
     canvas { display: block; width: 100%; height: 100%; pointer-events: none; outline: none; }
+    body.embedded { height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+    .embedded main { min-height: 0; overflow: hidden; padding: 12px; }
+    .embedded #phone { width: auto; height: 100%; max-width: 100%; }
     #loader { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 28px; text-align: center; background: #f4ede1; color: #493929; }
     #loader[hidden] { display: none; }
     h1 { font-size: 27px; margin: 0; }
@@ -70,13 +74,46 @@
     const refresh = document.getElementById('refresh');
     const progress = document.getElementById('progress');
     let ready = false;
+    let resolvePreviewReady;
+    const previewReady = new Promise(resolve => { resolvePreviewReady = resolve; });
+    let draftRevision = 0;
+    let draftSlot = null;
+    let fetchingContent = true;
+    let contentWaiters = [];
+    const waitForContent = () => fetchingContent ? new Promise(resolve => contentWaiters.push(resolve)) : Promise.resolve();
     let pictureLabels = '';
     const query = new URLSearchParams(location.search);
     for (const field of [screenField, themeField, languageField]) {
       if ([...field.options].some(option => option.value === query.get(field.id))) field.value = query.get(field.id);
     }
+    if (query.get('embedded') === '1') {
+      document.body.classList.add('embedded');
+      document.querySelector('.note').hidden = true;
+      refresh.hidden = true;
+    }
+    window.slideDraftBackground = async (file, slot) => {
+      const revision = ++draftRevision;
+      await previewReady;
+      if (revision !== draftRevision) return;
+      window.slidePreviewRefresh();
+      await waitForContent();
+      if (revision !== draftRevision) return;
+      draftSlot = slot;
+      screenField.value = slot === 'home' ? 'home' : 'game';
+      for (const option of screenField.options) option.disabled = slot === 'home' ? option.value !== 'home' : option.value === 'home';
+      screenField.disabled = slot === 'home';
+      themeField.disabled = slot === 'home' || slot.startsWith('theme-');
+      if (slot.startsWith('theme-')) themeField.value = slot.slice(6);
+      selectPreview();
+      const extension = file ? ({ 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' })[file.type] : '';
+      const bytes = file ? new Uint8Array(await file.arrayBuffer()) : null;
+      if (revision === draftRevision) window.slidePreviewDraft(bytes, extension, slot);
+    };
+    window.slideClearDraft = () => { draftSlot = null; draftRevision++; if (ready) window.slidePreviewDraft(null, '', ''); };
     window.slidePreviewStatus = json => {
       const state = JSON.parse(json);
+      fetchingContent = state.fetching;
+      if (!state.fetching) { for (const resolve of contentWaiters) resolve(); contentWaiters = []; }
       document.getElementById('status').textContent = state.fetching ? 'Đang tải nội dung…' : 'Preview sẵn sàng';
       refresh.disabled = !ready || state.fetching;
       const labels = JSON.stringify(state.pictures);
@@ -89,8 +126,16 @@
     };
     function selectPreview() {
       if (!ready || !window.slidePreview) return;
+      if (query.get('embedded') === '1' && draftSlot) {
+        document.querySelector('header').hidden = draftSlot === 'home';
+        themeField.closest('label').hidden = draftSlot === 'home' || draftSlot.startsWith('theme-');
+        pictureField.closest('label').hidden = screenField.value !== 'photo-game';
+        languageField.closest('label').hidden = true;
+        document.getElementById('status').hidden = true;
+      }
       window.slidePreview(screenField.value, Number(themeField.value), languageField.value, Number(pictureField.value));
       const selection = new URLSearchParams({ screen: screenField.value, theme: themeField.value, language: languageField.value });
+      if (query.get('embedded') === '1') selection.set('embedded', '1');
       history.replaceState(null, '', '?' + selection);
     }
     for (const field of fields) field.addEventListener('change', selectPreview);
@@ -108,6 +153,7 @@
       for (const field of fields) field.disabled = false;
       refresh.disabled = false;
       selectPreview();
+      resolvePreviewReady();
     }).catch(error => {
       console.error('Preview startup failed', error);
       progress.hidden = true;

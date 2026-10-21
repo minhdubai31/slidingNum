@@ -104,13 +104,14 @@ Build thành công sẽ tạo `android/plugins/ImagePicker.aar`. Mở lại Godo
 
 Dự án dùng Compatibility renderer, hỗ trợ touch và khóa hướng dọc. Chưa đóng gói APK/IPA hoặc đo hiệu năng trên điện thoại thật. Android cần Godot export templates khớp phiên bản, Android SDK và JDK; iOS cần macOS/Xcode. Cần kiểm tra file picker, haptic và vùng an toàn trên thiết bị trước khi phát hành.
 
-## Preview màn hình trên Web
+## Xem trước hình nền trước khi lưu
 
-Mở **https://slide-puzzle-backend.vercel.app/preview/** hoặc liên kết **Preview màn hình** trong trang quản trị.
-Bản này dùng giao diện Godot thật, chỉ để xem trước các màn hình và background, không cho chơi hoặc lưu ván.
-Chỉ có Home và màn chơi (xếp số/xếp ảnh), là các màn dùng background ảnh. Thanh công cụ cho phép chọn theme, ảnh mẫu và ngôn ngữ.
-Background theo theme áp dụng cho cả màn chơi xếp số và xếp ảnh; chọn **Làm mới nội dung** để tải cấu hình mới.
-Thay đổi đã tải xong được áp dụng tự động, không cần popup cập nhật. URL lưu màn hình/theme/ngôn ngữ đang chọn để có thể chia sẻ.
+Trong trang quản trị, chọn **Hình nền** → **Chọn ảnh nền** / **Thay ảnh nền**.
+Ảnh vừa chọn mở trong hộp thoại preview dùng giao diện Godot thật, ngay trên trang quản trị.
+Chỉ có Home và màn chơi xếp số/xếp ảnh; theme được chọn theo nền đang chỉnh.
+Ảnh nháp chỉ nằm trong bộ nhớ trình duyệt, chưa được upload. Chọn **Lưu hình nền** để cập nhật backend hoặc **Hủy** để bỏ ảnh nháp.
+Bỏ nền riêng bằng **Dùng nền chung** / **Dùng nền có sẵn** cũng có bước preview và Lưu/Hủy.
+Danh sách nền hiển thị 4 cột trên máy tính, giảm còn 2 hoặc 1 cột trên màn hình nhỏ.
 
 Xuất và đưa preview mới lên Vercel:
 

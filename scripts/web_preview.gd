@@ -17,6 +17,9 @@ var preview_initialized := false
 var input_guard: Control
 var select_callback: JavaScriptObject
 var refresh_callback: JavaScriptObject
+var draft_callback: JavaScriptObject
+var draft_slot := ""
+var draft_texture: Texture2D
 var was_fetching := false
 
 func _ready() -> void:
@@ -37,6 +40,8 @@ func _ready() -> void:
 		var window = JavaScriptBridge.get_interface("window")
 		select_callback = JavaScriptBridge.create_callback(on_preview_selected)
 		refresh_callback = JavaScriptBridge.create_callback(func(_args): catalogue.check(); notify_preview())
+		draft_callback = JavaScriptBridge.create_callback(on_draft_background)
+		window.slidePreviewDraft = draft_callback
 		window.slidePreview = select_callback
 		window.slidePreviewRefresh = refresh_callback
 	show_preview()
@@ -111,3 +116,30 @@ func save_session() -> void:
 
 func load_session() -> void:
 	pass
+
+# Unsaved images arrive directly from the admin iframe, never through a storage upload.
+func on_draft_background(args: Array) -> void:
+	draft_texture = null
+	draft_slot = str(args[2]) if args.size() >= 3 else ""
+	if args.size() >= 3 and args[0] != null:
+		var bytes := JavaScriptBridge.js_buffer_to_packed_byte_array(args[0])
+		var image := Image.new()
+		var error := ERR_FILE_UNRECOGNIZED
+		match str(args[1]):
+			"png": error = image.load_png_from_buffer(bytes)
+			"jpg": error = image.load_jpg_from_buffer(bytes)
+			"webp": error = image.load_webp_from_buffer(bytes)
+		if error != OK or image.is_empty():
+			draft_slot = ""
+			return
+		draft_texture = ImageTexture.create_from_image(image)
+	show_preview()
+
+func apply_backgrounds() -> void:
+	super.apply_backgrounds()
+	if draft_slot == "home":
+		backdrop.scenic = draft_texture if draft_texture else preload("res://assets/home-soft.png")
+	elif draft_slot == "game":
+		backdrop.game_override = draft_texture
+	elif draft_slot == "theme-%d" % preview_theme:
+		backdrop.game_override = draft_texture if draft_texture else background_textures.get("game")

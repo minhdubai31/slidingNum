@@ -147,8 +147,17 @@
     .content-nav { grid-column: 1 / -1; }
     .content-nav button[aria-pressed="true"] { background: var(--accent); color: #fff; }
     #background-panel { grid-column: 1 / -1; }
+    #backgrounds { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    @media (max-width: 900px) { #backgrounds { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 480px) { #backgrounds { grid-template-columns: 1fr; } }
     .background-card img { aspect-ratio: 9 / 16; max-height: 280px; }
     .background-placeholder { min-height: 180px; display: grid; place-items: center; text-align: center; padding: 16px; border: 1px dashed var(--line); border-radius: 8px; }
+    #background-preview { width: min(760px, calc(100vw - 24px)); height: calc(100dvh - 32px); padding: 0; border: 1px solid var(--line); border-radius: 16px; color: var(--ink); background: var(--panel); }
+    #background-preview::backdrop { background: #0009; }
+    .draft-layout { height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+    .draft-heading, .draft-actions { padding: 14px 18px; }
+    .draft-actions { border-top: 1px solid var(--line); }
+    #draft-frame { width: 100%; height: 100%; border: 0; background: #211b16; }
     .hidden { display: none !important; }
   </style>
 </head>
@@ -177,7 +186,6 @@
     <nav class="row content-nav" aria-label="Loại nội dung">
       <button id="view-topics" aria-pressed="true">Ảnh chủ đề</button>
       <button id="view-backgrounds" aria-pressed="false">Hình nền</button>
-      <a href="/preview/" target="_blank" rel="noopener" style="color: var(--accent); padding: 7px 12px;">Preview màn hình ↗</a>
     </nav>
     <section id="topic-panel">
       <h2>Chủ đề</h2>
@@ -202,11 +210,26 @@
 
   <p class="status" id="status" role="status" style="padding: 0 20px;"></p>
 
+  <dialog id="background-preview" aria-labelledby="draft-title">
+    <div class="draft-layout">
+      <div class="draft-heading">
+        <h2 id="draft-title">Xem trước hình nền</h2>
+        <p id="draft-description" class="muted"></p>
+        <p id="draft-status" class="status" role="status"></p>
+      </div>
+      <iframe id="draft-frame" title="Xem trước hình nền trong giao diện app"></iframe>
+      <div class="draft-actions row">
+        <span class="muted grow">Chưa lưu · chỉ thay đổi sau khi bấm Lưu.</span>
+        <button id="draft-cancel">Hủy</button>
+        <button id="draft-save" class="primary" disabled>Lưu hình nền</button>
+      </div>
+    </div>
+  </dialog>
   <script>
     const MAX_BYTES = 4 * 1024 * 1024;
     const ACCEPT = ['image/png', 'image/jpeg', 'image/webp'];
     const THEME_NAMES = ['Gỗ cổ điển', 'Gỗ tối', 'Gốm sứ', 'Đá cẩm thạch', 'Kim loại', 'Kính mờ', 'Đất sét', 'Neon'];
-    const state = { token: '', topics: [], selected: null, view: 'topics', backgrounds: {}, backgroundBusy: '' };
+    const state = { token: '', topics: [], selected: null, view: 'topics', backgrounds: {}, backgroundBusy: '', draft: null };
 
     // ---- small DOM helper ------------------------------------------------
     function h(tag, props = {}, ...children) {
@@ -306,14 +329,14 @@
         const fallback = inherited ? 'Đang dùng nền màn chơi chung' : 'Đang dùng nền có sẵn';
         const busy = Boolean(state.backgroundBusy);
         const input = h('input', { type: 'file', accept: ACCEPT.join(','), hidden: true,
-          onchange: (e) => changeBackground(slot, e.target.files[0]) });
+          onchange: (e) => { const file = e.target.files[0]; e.target.value = ""; previewBackground(slot, title, file); } });
         return h('div', { class: 'card background-card' },
           h('h3', { style: 'margin: 0;' }, title),
           preview ? h('img', { src: preview.url, alt: `Hình nền ${title}`, loading: 'lazy' })
             : h('div', { class: 'background-placeholder muted' }, fallback),
           h('span', { class: 'muted' }, background ? `Nền riêng · ${formatKB(background.bytes)}` : fallback),
           h('button', { disabled: busy, onclick: () => input.click() }, state.backgroundBusy === slot ? 'Đang lưu…' : background ? 'Thay ảnh nền' : 'Chọn ảnh nền'),
-          h('button', { disabled: busy || !background, onclick: () => changeBackground(slot, null, true) }, resetLabel),
+          h('button', { disabled: busy || !background, onclick: () => previewBackground(slot, title, null, true) }, resetLabel),
           input,
         );
       }));
@@ -328,17 +351,97 @@
       state.backgroundBusy = slot;
       renderBackgrounds();
       setStatus('Đang lưu hình nền…');
+      let persisted = false;
       try {
         await api(reset ? 'DELETE' : 'PUT', `/api/admin/backgrounds/${slot}`, file ? { file } : {});
+        persisted = true;
         await load();
         setStatus(reset ? 'Đã bỏ nền riêng. App sẽ dùng nền dự phòng.' : 'Đã cập nhật hình nền. App sẽ tải ngầm ở lần mở tiếp theo.', 'ok');
+        return true;
       } catch (err) {
+        if (persisted) {
+          setStatus('Đã lưu hình nền nhưng chưa tải lại được danh sách. Hãy tải lại trang.', 'err');
+          return true;
+        }
         if (err.message !== 'Unauthorized') setStatus(err.message, 'err');
+        return false;
       } finally {
         state.backgroundBusy = '';
         renderBackgrounds();
       }
     }
+
+
+    let draftFrameLoad = null;
+    async function previewBackground(slot, title, file, reset = false) {
+      if (state.backgroundBusy || (!file && !reset)) return;
+      if (file) {
+        const problem = checkFile(file);
+        if (problem) return setStatus(`${file.name}: ${problem}`, 'err');
+        const url = URL.createObjectURL(file);
+        try {
+          const image = new Image(); image.src = url;
+          await image.decode();
+        } catch {
+          return setStatus('Không đọc được ảnh. Hãy chọn một ảnh PNG, JPEG hoặc WebP hợp lệ.', 'err');
+        } finally { URL.revokeObjectURL(url); }
+      }
+      const draft = { slot, title, file, reset };
+      state.draft = draft;
+      document.getElementById('draft-title').textContent = `Xem trước · ${title}`;
+      document.getElementById('draft-description').textContent = reset ? 'Xem nền dự phòng trước khi bỏ nền riêng.' : file.name;
+      const status = document.getElementById('draft-status');
+      status.textContent = 'Đang mở preview…';
+      document.getElementById('draft-save').disabled = true;
+      const dialog = document.getElementById('background-preview');
+      dialog.showModal();
+      try {
+        const frame = document.getElementById('draft-frame');
+        if (!draftFrameLoad) {
+          draftFrameLoad = new Promise((resolve, reject) => {
+            const timer = setTimeout(() => reject(new Error('Preview tải quá lâu. Hãy thử lại.')), 120000);
+            frame.onload = () => { clearTimeout(timer); resolve(); };
+            frame.onerror = () => { clearTimeout(timer); reject(new Error('Không mở được preview.')); };
+            frame.src = '/preview/?embedded=1';
+          }).catch(error => { draftFrameLoad = null; throw error; });
+        }
+        await draftFrameLoad;
+        if (state.draft !== draft) return;
+        await Promise.race([
+          frame.contentWindow.slideDraftBackground(file, slot),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Không tải được preview. Hãy thử lại.')), 120000)),
+        ]);
+        if (state.draft !== draft) return;
+        status.textContent = 'Ảnh đang được xem thử, chưa được lưu lên backend.';
+        document.getElementById('draft-save').disabled = false;
+      } catch (err) {
+        if (state.draft === draft) status.textContent = err.message;
+      }
+    }
+
+    function closeBackgroundPreview() {
+      if (state.backgroundBusy) return;
+      state.draft = null;
+      const frame = document.getElementById('draft-frame');
+      if (frame.contentWindow?.slideClearDraft) frame.contentWindow.slideClearDraft();
+      document.getElementById('background-preview').close();
+    }
+    document.getElementById('draft-cancel').addEventListener('click', closeBackgroundPreview);
+    document.getElementById('background-preview').addEventListener('cancel', e => { e.preventDefault(); closeBackgroundPreview(); });
+    document.getElementById('draft-save').addEventListener('click', async () => {
+      const draft = state.draft;
+      if (!draft || state.backgroundBusy) return;
+      document.getElementById('draft-save').disabled = true;
+      document.getElementById('draft-cancel').disabled = true;
+      document.getElementById('draft-status').textContent = 'Đang lưu…';
+      const saved = await changeBackground(draft.slot, draft.file, draft.reset);
+      document.getElementById('draft-cancel').disabled = false;
+      if (saved) closeBackgroundPreview();
+      else {
+        document.getElementById('draft-status').textContent = 'Chưa lưu được. Kiểm tra kết nối và thử lại.';
+        document.getElementById('draft-save').disabled = false;
+      }
+    });
 
     function renderTopics() {
       const list = document.getElementById('topics');
