@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Quản lý ảnh · Slide Puzzle</title>
+  <style>
+    :root {
+      --bg: #f6efe3;
+      --panel: #fffaf2;
+      --ink: #35291f;
+      --muted: #7a6a58;
+      --line: #e3d6c1;
+      --accent: #2f6fb0;
+      --danger: #b03a2f;
+      --ok: #2e7d4f;
+      --radius: 12px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #1f1812;
+        --panel: #2a2119;
+        --ink: #f3e7d4;
+        --muted: #b3a089;
+        --line: #473a2c;
+        --accent: #6aa6e8;
+        --danger: #e07a6f;
+        --ok: #7fcc98;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+    }
+    h1 { margin: 0; font-size: 20px; }
+    h2 { margin: 0 0 12px; font-size: 17px; }
+    main {
+      display: grid;
+      grid-template-columns: minmax(220px, 280px) 1fr;
+      gap: 20px;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    @media (max-width: 720px) {
+      main { grid-template-columns: 1fr; }
+    }
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px;
+      min-width: 0;
+    }
+    input[type="text"], input[type="password"], select {
+      font: inherit;
+      color: var(--ink);
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 10px;
+      min-width: 0;
+    }
+    button {
+      font: inherit;
+      color: var(--ink);
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 7px 12px;
+      cursor: pointer;
+    }
+    button:hover:not(:disabled) { border-color: var(--accent); }
+    button:disabled { opacity: 0.45; cursor: default; }
+    button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    button.danger { color: var(--danger); }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .grow { flex: 1; }
+    .muted { color: var(--muted); font-size: 13px; }
+    .topic-list { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 6px; }
+    .topic-list button {
+      width: 100%;
+      text-align: left;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .topic-list button[aria-current="true"] { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+    .tag {
+      font-size: 12px;
+      color: var(--muted);
+      border: 1px dashed var(--line);
+      border-radius: 6px;
+      padding: 0 6px;
+      white-space: nowrap;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px;
+      display: grid;
+      gap: 8px;
+      background: var(--bg);
+      align-content: start;
+    }
+    .card.hidden-pic { opacity: 0.6; }
+    .card img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      border-radius: 8px;
+      background: var(--line);
+    }
+    .card .actions { display: flex; flex-wrap: wrap; gap: 4px; }
+    .card .actions button { padding: 4px 8px; font-size: 13px; }
+    .card select { font-size: 13px; width: 100%; }
+    .status {
+      min-height: 22px;
+      margin: 0 0 12px;
+      font-size: 14px;
+    }
+    .status.ok { color: var(--ok); }
+    .status.err { color: var(--danger); }
+    .empty { color: var(--muted); padding: 24px 0; text-align: center; }
+    .login { max-width: 420px; margin: 40px auto; }
+    .login form { display: grid; gap: 10px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Quản lý ảnh theo chủ đề</h1>
+    <div class="row">
+      <span class="muted" id="who"></span>
+      <button id="signout" class="hidden">Đăng xuất</button>
+    </div>
+  </header>
+
+  <div id="login" class="login hidden">
+    <section>
+      <h2>Đăng nhập quản trị</h2>
+      <p class="muted">Nhập <code>ADMIN_TOKEN</code> đã đặt trên Vercel. Token chỉ lưu trong tab này và mất khi đóng tab.</p>
+      <form id="login-form">
+        <input type="password" id="token" placeholder="ADMIN_TOKEN" autocomplete="off" required>
+        <div class="row"><button class="primary" type="submit">Đăng nhập</button></div>
+        <p class="status err" id="login-error"></p>
+      </form>
+    </section>
+  </div>
+
+  <main id="app" class="hidden">
+    <section>
+      <h2>Chủ đề</h2>
+      <ul class="topic-list" id="topics"></ul>
+      <form id="new-topic" class="row">
+        <input type="text" id="new-topic-name" class="grow" placeholder="Tên chủ đề mới" maxlength="40" required>
+        <button type="submit">Thêm</button>
+      </form>
+    </section>
+
+    <section id="detail">
+      <p class="empty">Chọn hoặc tạo một chủ đề.</p>
+    </section>
+  </main>
+
+  <p class="status" id="status" role="status" style="padding: 0 20px;"></p>
+
+  <script>
+    const MAX_BYTES = 4 * 1024 * 1024;
+    const ACCEPT = ['image/png', 'image/jpeg', 'image/webp'];
+    const state = { token: '', topics: [], selected: null };
+
+    // ---- small DOM helper ------------------------------------------------
+    function h(tag, props = {}, ...children) {
+      const node = document.createElement(tag);
+      for (const [key, value] of Object.entries(props)) {
+        if (value === undefined || value === null || value === false) continue;
+        if (key.startsWith('on')) node.addEventListener(key.slice(2), value);
+        else if (['value', 'checked', 'disabled', 'multiple', 'hidden', 'selected'].includes(key)) node[key] = value;
+        else node.setAttribute(key, value === true ? '' : value);
+      }
+      for (const child of children.flat()) {
+        if (child === undefined || child === null || child === false) continue;
+        node.append(child instanceof Node ? child : document.createTextNode(String(child)));
+      }
+      return node;
+    }
+
+    function setStatus(text, kind = '') {
+      const el = document.getElementById('status');
+      el.textContent = text;
+      el.className = 'status ' + kind;
+    }
+
+    function formatKB(bytes) {
+      return Math.round(bytes / 1024) + ' KB';
+    }
+
+    // ---- API -------------------------------------------------------------
+    async function api(method, path, { json, file } = {}) {
+      const headers = { Authorization: 'Bearer ' + state.token };
+      let body;
+      if (json !== undefined) {
+        headers['Content-Type'] = 'application/json';
+        body = JSON.stringify(json);
+      } else if (file) {
+        headers['Content-Type'] = file.type || 'application/octet-stream';
+        body = file;
+      }
+      const res = await fetch(path, { method, headers, body });
+      if (res.status === 401) {
+        signOut('Token không đúng hoặc đã bị đổi. Đăng nhập lại.');
+        throw new Error('Unauthorized');
+      }
+      if (res.status === 204) return null;
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Lỗi ' + res.status);
+      return data;
+    }
+
+    // Runs an action, reports the outcome, then reloads from the server so the screen matches the database.
+    async function run(action, okMessage) {
+      try {
+        const result = await action();
+        setStatus(okMessage, 'ok');
+        await load();
+        return result;
+      } catch (err) {
+        if (err.message !== 'Unauthorized') setStatus(err.message, 'err');
+        return undefined;
+      }
+    }
+
+    async function load() {
+      const data = await api('GET', '/api/admin/topics');
+      state.topics = data.topics;
+      if (!state.topics.some((t) => t.id === state.selected)) {
+        state.selected = state.topics[0]?.id ?? null;
+      }
+      render();
+    }
+
+    // ---- rendering ---------------------------------------------------------
+    function render() {
+      renderTopics();
+      renderDetail();
+    }
+
+    function renderTopics() {
+      const list = document.getElementById('topics');
+      list.replaceChildren(...state.topics.map((topic) => {
+        const visible = topic.pictures.filter((p) => p.active).length;
+        return h('li', {},
+          h('button', {
+            'aria-current': String(topic.id === state.selected),
+            onclick: () => { state.selected = topic.id; render(); },
+          },
+            h('span', {}, topic.name),
+            h('span', { class: 'row' },
+              topic.active ? null : h('span', { class: 'tag' }, 'ẩn'),
+              h('span', { class: 'muted' }, `${visible}/${topic.pictures.length}`),
+            ),
+          ),
+        );
+      }));
+      if (state.topics.length === 0) list.append(h('li', { class: 'muted' }, 'Chưa có chủ đề nào.'));
+    }
+
+    function renderDetail() {
+      const panel = document.getElementById('detail');
+      const topic = state.topics.find((t) => t.id === state.selected);
+      if (!topic) {
+        panel.replaceChildren(h('p', { class: 'empty' }, 'Chọn hoặc tạo một chủ đề.'));
+        return;
+      }
+      const others = state.topics.filter((t) => t.id !== topic.id);
+      const nameInput = h('input', { type: 'text', value: topic.name, maxlength: 40, class: 'grow', 'aria-label': 'Tên chủ đề' });
+
+      const upload = h('input', { type: 'file', multiple: true, accept: ACCEPT.join(',') });
+      const header = h('div', { class: 'row' },
+        h('div', { class: 'grow' }, h('h2', {}, topic.name), h('div', { class: 'muted' }, `${topic.pictures.length} ảnh · ${topic.active ? 'đang hiện trong game' : 'đang ẩn'}`)),
+        h('button', { onclick: () => toggleTopic(topic) }, topic.active ? 'Ẩn chủ đề' : 'Hiện chủ đề'),
+        h('button', { class: 'danger', onclick: () => deleteTopic(topic) }, 'Xóa chủ đề'),
+      );
+      const rename = h('form', { class: 'row', style: 'margin-top: 12px;', onsubmit: (e) => { e.preventDefault(); renameTopic(topic, nameInput.value); } },
+        nameInput,
+        h('button', { type: 'submit' }, 'Lưu tên'),
+      );
+      const addPictures = h('form', { class: 'row', style: 'margin-top: 12px;', onsubmit: (e) => { e.preventDefault(); uploadFiles(topic, upload.files); } },
+        upload,
+        h('button', { class: 'primary', type: 'submit' }, 'Thêm ảnh'),
+      );
+      const hint = h('p', { class: 'muted' }, 'PNG, JPEG hoặc WebP, tối đa 4 MB mỗi ảnh. Nên resize về cạnh khoảng 1600 px.');
+
+      const grid = h('div', { class: 'grid' }, ...topic.pictures.map((pic, index) => pictureCard(topic, pic, index, others)));
+      const empty = topic.pictures.length === 0 ? h('p', { class: 'empty' }, 'Chủ đề này chưa có ảnh. Thêm ảnh ở trên.') : null;
+
+      panel.replaceChildren(header, rename, addPictures, hint, empty ?? grid);
+    }
+
+    function pictureCard(topic, pic, index, others) {
+      const replaceInput = h('input', { type: 'file', accept: ACCEPT.join(','), hidden: true, onchange: (e) => replacePicture(pic, e.target.files[0]) });
+      const move = h('select', { 'aria-label': 'Chuyển sang chủ đề khác', onchange: (e) => movePicture(pic, e.target.value) },
+        h('option', { value: '' }, 'Chuyển sang…'),
+        ...others.map((t) => h('option', { value: t.id }, t.name)),
+      );
+      return h('div', { class: 'card' + (pic.active ? '' : ' hidden-pic') },
+        h('img', { src: pic.url, alt: `Ảnh ${index + 1} của ${topic.name}`, loading: 'lazy' }),
+        h('div', { class: 'muted' }, `#${index + 1} · ${formatKB(pic.bytes)}${pic.active ? '' : ' · đang ẩn'}`),
+        h('div', { class: 'actions' },
+          h('button', { disabled: index === 0, title: 'Đưa lên', onclick: () => reorder(topic, index, -1) }, '↑'),
+          h('button', { disabled: index === topic.pictures.length - 1, title: 'Đưa xuống', onclick: () => reorder(topic, index, 1) }, '↓'),
+          h('button', { onclick: () => togglePicture(pic) }, pic.active ? 'Ẩn' : 'Hiện'),
+          h('button', { onclick: () => replaceInput.click() }, 'Thay ảnh'),
+          h('button', { class: 'danger', onclick: () => deletePicture(pic) }, 'Xóa'),
+          replaceInput,
+        ),
+        others.length ? move : null,
+      );
+    }
+
+    // ---- actions -------------------------------------------------------------
+    function renameTopic(topic, name) {
+      run(() => api('PATCH', `/api/admin/topics/${topic.id}`, { json: { name: name.trim() } }), 'Đã lưu tên chủ đề.');
+    }
+
+    function toggleTopic(topic) {
+      run(() => api('PATCH', `/api/admin/topics/${topic.id}`, { json: { active: !topic.active } }),
+        topic.active ? 'Đã ẩn chủ đề khỏi game.' : 'Chủ đề đã hiện trong game.');
+    }
+
+    function deleteTopic(topic) {
+      if (!confirm(`Xóa chủ đề "${topic.name}" và ${topic.pictures.length} ảnh của nó? Không thể hoàn tác.`)) return;
+      state.selected = null;
+      run(() => api('DELETE', `/api/admin/topics/${topic.id}`), 'Đã xóa chủ đề.');
+    }
+
+    async function createTopic(name) {
+      const data = await run(() => api('POST', '/api/admin/topics', { json: { name: name.trim() } }), 'Đã tạo chủ đề.');
+      if (data) state.selected = data.topic.id;
+      render();
+    }
+
+    async function uploadFiles(topic, files) {
+      const list = [...files];
+      if (list.length === 0) return setStatus('Chọn ít nhất một ảnh.', 'err');
+      const problems = [];
+      let done = 0;
+      for (const file of list) {
+        setStatus(`Đang tải ${done + 1}/${list.length}: ${file.name}`);
+        const problem = checkFile(file);
+        if (problem) { problems.push(`${file.name}: ${problem}`); done++; continue; }
+        try {
+          await api('POST', `/api/admin/topics/${topic.id}/pictures`, { file });
+        } catch (err) {
+          if (err.message === 'Unauthorized') return;
+          problems.push(`${file.name}: ${err.message}`);
+        }
+        done++;
+      }
+      await load();
+      setStatus(problems.length
+        ? `Đã tải ${done - problems.length}/${list.length} ảnh. Lỗi: ${problems.join('; ')}`
+        : `Đã thêm ${list.length} ảnh vào "${topic.name}".`, problems.length ? 'err' : 'ok');
+    }
+
+    function checkFile(file) {
+      if (!ACCEPT.includes(file.type)) return 'định dạng không hỗ trợ';
+      if (file.size > MAX_BYTES) return 'lớn hơn 4 MB';
+      return '';
+    }
+
+    function replacePicture(pic, file) {
+      if (!file) return;
+      const problem = checkFile(file);
+      if (problem) return setStatus(`${file.name}: ${problem}`, 'err');
+      run(() => api('PUT', `/api/admin/pictures/${pic.id}`, { file }), 'Đã thay ảnh.');
+    }
+
+    function togglePicture(pic) {
+      run(() => api('PATCH', `/api/admin/pictures/${pic.id}`, { json: { active: !pic.active } }),
+        pic.active ? 'Đã ẩn ảnh.' : 'Ảnh đã hiện trong game.');
+    }
+
+    function movePicture(pic, topicId) {
+      if (!topicId) return;
+      const target = state.topics.find((t) => t.id === topicId);
+      run(() => api('PATCH', `/api/admin/pictures/${pic.id}`, { json: { topic_id: topicId } }), `Đã chuyển sang "${target.name}".`);
+    }
+
+    function deletePicture(pic) {
+      if (!confirm('Xóa ảnh này? Không thể hoàn tác.')) return;
+      run(() => api('DELETE', `/api/admin/pictures/${pic.id}`), 'Đã xóa ảnh.');
+    }
+
+    // Swaps one picture with its neighbour, then rewrites positions so they run 0..n-1 in the new order.
+    async function reorder(topic, index, delta) {
+      const order = [...topic.pictures];
+      const other = index + delta;
+      [order[index], order[other]] = [order[other], order[index]];
+      try {
+        for (let i = 0; i < order.length; i++) {
+          if (order[i].position !== i) {
+            await api('PATCH', `/api/admin/pictures/${order[i].id}`, { json: { position: i } });
+          }
+        }
+        await load();
+      } catch (err) {
+        if (err.message !== 'Unauthorized') setStatus(err.message, 'err');
+      }
+    }
+
+    // ---- session -------------------------------------------------------------
+    function readToken() {
+      try { return sessionStorage.getItem('adminToken') || ''; } catch { return ''; }
+    }
+    function saveToken(token) {
+      try { sessionStorage.setItem('adminToken', token); } catch { /* private mode: token lives only in memory */ }
+    }
+    function clearToken() {
+      try { sessionStorage.removeItem('adminToken'); } catch { /* nothing stored */ }
+    }
+
+    function showLogin(message = '') {
+      document.getElementById('app').classList.add('hidden');
+      document.getElementById('login').classList.remove('hidden');
+      document.getElementById('signout').classList.add('hidden');
+      document.getElementById('who').textContent = '';
+      document.getElementById('login-error').textContent = message;
+      document.getElementById('token').focus();
+    }
+
+    function signOut(message = '') {
+      state.token = '';
+      state.topics = [];
+      state.selected = null;
+      clearToken();
+      showLogin(message);
+    }
+
+    async function enter() {
+      document.getElementById('login').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+      document.getElementById('signout').classList.remove('hidden');
+      document.getElementById('who').textContent = 'Đã đăng nhập';
+      setStatus('Đang tải…');
+      try {
+        await load();
+        setStatus('');
+      } catch (err) {
+        if (err.message !== 'Unauthorized') setStatus(err.message, 'err');
+      }
+    }
+
+    document.getElementById('login-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      state.token = document.getElementById('token').value.trim();
+      saveToken(state.token);
+      document.getElementById('login-error').textContent = '';
+      enter();
+    });
+    document.getElementById('signout').addEventListener('click', () => signOut('Đã đăng xuất.'));
+    document.getElementById('new-topic').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const input = document.getElementById('new-topic-name');
+      if (!input.value.trim()) return;
+      createTopic(input.value).then(() => { input.value = ''; });
+    });
+
+    state.token = readToken();
+    if (state.token) enter(); else showLogin();
+  </script>
+</body>
+</html>

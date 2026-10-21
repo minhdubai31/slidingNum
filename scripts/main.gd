@@ -7,6 +7,15 @@ const VERSION = "0.7"
 const U = preload("res://scripts/ui.gd")
 const PHOTO_NAMES = ["Thiên nhiên", "Thú cưng", "Du lịch", "Sa mạc", "Hoa lá", "Vũ trụ"]
 const PHOTO_FILES = ["res://assets/alpine.png", "res://assets/kitten-soft.png", "res://assets/seaside.png", "res://assets/oasis.png", "res://assets/flowers.png", "res://assets/cosmos.png"]
+# Records were stored per bundled file. The seeded backend pictures keep those keys so results survive the switch.
+const LEGACY_KEYS = {
+	"c45b07f2-8e78-41ad-8463-522fe427da6f": "res://assets/alpine.png",
+	"14dda321-b61e-4046-9764-3e6b6c07ff7f": "res://assets/kitten-soft.png",
+	"8f1f0d89-d60b-4542-a889-81536a7eda3a": "res://assets/seaside.png",
+	"3a8c7d43-2f9d-436a-b65a-c4c5b5029615": "res://assets/oasis.png",
+	"d00a08c5-2874-4e8b-b0a6-677ceb902e42": "res://assets/flowers.png",
+	"d6c89caf-132a-4d58-a302-413fdd97bf35": "res://assets/cosmos.png",
+}
 
 var puzzle := SlidePuzzle.new()
 var profile := SlideProfile.new()
@@ -21,6 +30,12 @@ var moves_label: Label
 var status_label: Label
 var hint_button: Button
 var pictures: Array[Texture2D] = []
+var picture_keys: Array[String] = []
+var picture_topics: Array[int] = []
+var topic_names: Array[String] = []
+var topic_members: Array = []
+var catalogue: SlideCatalogue
+var catalogue_offered: String = ""
 var elapsed: float = 0.0
 var photo_mode: bool = false
 var picture_index: int = 0
@@ -59,9 +74,10 @@ func _ready() -> void:
 	profile.load_data()
 	if str(profile.settings.language) not in SlideI18n.LANGUAGES:
 		profile.settings.language = SlideI18n.detect()
-	for path in PHOTO_FILES:
-		var imported: Texture2D = load(path)
-		pictures.append(crop_texture(imported.get_image()))
+	catalogue = SlideCatalogue.new()
+	add_child(catalogue)
+	catalogue.pending_ready.connect(offer_catalogue_update)
+	load_catalogue(catalogue.active)
 	puzzle.reset(4)
 	load_session()
 	build_sound()
@@ -83,6 +99,8 @@ func _ready() -> void:
 		android_picker.connect("image_picked", import_picture)
 	resized.connect(on_resized)
 	test_mode = OS.get_cmdline_user_args().has("--test-mode")
+	if not test_mode:
+		catalogue.check()
 	go("home" if test_mode else "splash")
 
 # ------------------------------------------------------------------ layout helpers
@@ -173,6 +191,8 @@ func go(destination: String, animate: bool = true) -> void:
 		"stats": stats_screen()
 		"help": help_screen()
 		"daily": daily_screen()
+	if screen == "home":
+		offer_catalogue_update.call_deferred()
 	if profile.settings.animation and screen != "splash" and animate:
 		page.modulate.a = 0.0
 		create_tween().tween_property(page, "modulate:a", 1.0, 0.22)
@@ -592,7 +612,7 @@ func mode_card(photo: bool) -> void:
 	line.add_theme_constant_override("separation", 16)
 	margin.add_child(line)
 	var thumb: float = card.custom_minimum_size.y - 26
-	line.add_child(miniature(3, thumb, pictures[1] if photo else null))
+	line.add_child(miniature(3, thumb, picture_at(1) if photo else null))
 	var words := VBoxContainer.new()
 	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	words.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -696,22 +716,23 @@ func gallery_screen() -> void:
 		var chevron := icon_image("chevron", 16)
 		chevron.size_flags_vertical = Control.SIZE_SHRINK_END
 		line.add_child(chevron)
-	for i in range(PHOTO_NAMES.size()):
-		picture_card(grid, pictures[i], PHOTO_NAMES[i], U.t("%d ảnh") % 1, "TopicCard%d" % i, func(): picture_topic = i; go("topic"))
+	for t in range(topic_names.size()):
+		var members: Array = topic_members[t]
+		picture_card(grid, pictures[members[0]], topic_names[t], U.t("%d ảnh") % members.size(), "TopicCard%d" % t, func(): picture_topic = t; go("topic"))
 
 func topic_screen() -> void:
-	header("Của bạn" if picture_topic < 0 else PHOTO_NAMES[picture_topic], "gallery")
+	header("Của bạn" if picture_topic < 0 else topic_names[picture_topic], "gallery")
 	var ids: Array[int] = []
 	if picture_topic < 0:
 		ids = personal_picture_ids()
 	else:
-		ids.append(picture_topic)
+		ids.assign(topic_members[picture_topic])
 	if not ids.is_empty():
 		paragraph(U.t("%d ảnh") % ids.size())
 	if not ids.is_empty():
 		var grid := picture_grid()
 		for i in ids:
-			var title: String = U.t("Ảnh của bạn") if i < 0 else PHOTO_NAMES[i]
+			var title: String = U.t("Ảnh của bạn") if i < 0 else topic_names[picture_topics[i]]
 			var item := VBoxContainer.new()
 			item.custom_minimum_size.x = (content_width() - 12) / 2.0
 			item.add_theme_constant_override("separation", 6)
@@ -875,8 +896,95 @@ func open_picture_picker() -> void:
 func personal_picture_path(id: int) -> String:
 	return "user://custom_picture.png" if id == -1 else "user://custom_pictures/%d.png" % -id
 
+func load_catalogue(manifest: Dictionary) -> void:
+	if not build_catalogue(manifest):
+		build_bundled()
+
+# Builds the catalogue from downloaded files. Returns false, leaving the current catalogue untouched, if any file is missing.
+func build_catalogue(manifest: Dictionary) -> bool:
+	var textures: Array[Texture2D] = []
+	var keys: Array[String] = []
+	var names: Array[String] = []
+	var members: Array = []
+	for topic in manifest.get("topics", []):
+		var indexes: Array[int] = []
+		for picture in topic.get("pictures", []):
+			var path := SlideCatalogue.picture_path(str(picture.get("url", "")))
+			var image: Image = Image.load_from_file(path) if FileAccess.file_exists(path) else null
+			if image == null or image.is_empty():
+				return false
+			var id := str(picture.get("id", ""))
+			indexes.append(textures.size())
+			textures.append(crop_texture(image))
+			keys.append(str(LEGACY_KEYS.get(id, "remote:" + id)))
+		if not indexes.is_empty():
+			names.append(str(topic.get("name", "")))
+			members.append(indexes)
+	if textures.is_empty():
+		return false
+	set_catalogue(textures, keys, names, members)
+	return true
+
+func build_bundled() -> void:
+	var textures: Array[Texture2D] = []
+	var keys: Array[String] = []
+	var names: Array[String] = []
+	var members: Array = []
+	for i in range(PHOTO_FILES.size()):
+		var imported: Texture2D = load(PHOTO_FILES[i])
+		textures.append(crop_texture(imported.get_image()))
+		keys.append(PHOTO_FILES[i])
+		names.append(PHOTO_NAMES[i])
+		members.append([i])
+	set_catalogue(textures, keys, names, members)
+
+func set_catalogue(textures: Array[Texture2D], keys: Array[String], names: Array[String], members: Array) -> void:
+	pictures.assign(textures)
+	picture_keys.assign(keys)
+	topic_names.assign(names)
+	topic_members = members
+	picture_topics.clear()
+	picture_topics.resize(textures.size())
+	for t in range(members.size()):
+		for index in members[t]:
+			picture_topics[index] = t
+
+func picture_at(index: int) -> Texture2D:
+	return pictures[posmod(index, pictures.size())]
+
+func index_of_key(key: String) -> int:
+	return picture_keys.find(key) if key != "" else -1
+
+func saved_picture_key() -> String:
+	return picture_key(picture_index) if photo_mode and picture_index >= 0 else ""
+
+# Shows the popup on the home screen once per staged version. Choosing "Để sau" keeps the staged copy for later.
+func offer_catalogue_update() -> void:
+	if screen != "home" or not catalogue.has_pending() or is_instance_valid(overlay):
+		return
+	var version := str(catalogue.pending.get("version", ""))
+	if version == catalogue_offered:
+		return
+	catalogue_offered = version
+	show_overlay("Có nội dung mới", "Nội dung mới đã được tải sẵn. Tải lại để áp dụng cập nhật.", [["Tải lại", apply_catalogue_update], ["Để sau", func(): pass]], "image")
+
+func apply_catalogue_update() -> void:
+	var key := saved_picture_key()
+	if not catalogue.apply_pending():
+		return
+	load_catalogue(catalogue.active)
+	# Keep the picture being played: find it again by key, since its index may have moved.
+	if index_of_key(key) >= 0:
+		picture_index = index_of_key(key)
+	elif picture_index >= pictures.size():
+		picture_index = 0
+	if pending_picture >= pictures.size():
+		pending_picture = 0
+	save_session()
+	go("home", false)
+
 func picture_key(id: int) -> String:
-	return personal_picture_path(id) if id < 0 else PHOTO_FILES[posmod(id, PHOTO_FILES.size())]
+	return personal_picture_path(id) if id < 0 else picture_keys[posmod(id, picture_keys.size())]
 
 func personal_picture_ids() -> Array[int]:
 	var ids: Array[int] = []
@@ -1927,6 +2035,8 @@ func close_overlay() -> void:
 		remove_child(overlay)
 		overlay.queue_free()
 	overlay = null
+	if is_instance_valid(catalogue):
+		offer_catalogue_update.call_deferred()
 	if is_instance_valid(audio):
 		audio.set_context(false)
 	if is_instance_valid(board):
@@ -2023,7 +2133,7 @@ func save_session() -> void:
 	var file := FileAccess.open(SAVE_PATH + ".tmp", FileAccess.WRITE)
 	if not file:
 		return
-	file.store_string(JSON.stringify({"dimension": puzzle.dimension, "cells": puzzle.cells, "history": puzzle.history, "solution": puzzle.solution, "initial": initial_cells, "initial_solution": initial_solution, "moves": puzzle.moves, "elapsed": elapsed, "photo": photo_mode, "picture": picture_index, "won": won_recorded, "record": new_record, "daily": daily_date, "hints": hints_left, "redo": puzzle.redo_stack}))
+	file.store_string(JSON.stringify({"dimension": puzzle.dimension, "cells": puzzle.cells, "history": puzzle.history, "solution": puzzle.solution, "initial": initial_cells, "initial_solution": initial_solution, "moves": puzzle.moves, "elapsed": elapsed, "photo": photo_mode, "picture": picture_index, "picture_key": saved_picture_key(), "won": won_recorded, "record": new_record, "daily": daily_date, "hints": hints_left, "redo": puzzle.redo_stack}))
 	file.close()
 	DirAccess.rename_absolute(ProjectSettings.globalize_path(SAVE_PATH + ".tmp"), ProjectSettings.globalize_path(SAVE_PATH))
 
@@ -2059,6 +2169,8 @@ func load_session() -> void:
 	initial_solution = int_array(data.get("initial_solution", []))
 	photo_mode = bool(data.get("photo", false))
 	picture_index = int(data.get("picture", 0))
+	if photo_mode and index_of_key(str(data.get("picture_key", ""))) >= 0:
+		picture_index = index_of_key(str(data.get("picture_key", "")))
 	if picture_index >= pictures.size() or (picture_index < 0 and not FileAccess.file_exists(personal_picture_path(picture_index))):
 		picture_index = 0
 	elapsed = maxf(0, float(data.get("elapsed", 0)))

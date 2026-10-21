@@ -16,6 +16,10 @@ static func t(value: String) -> String:
 	return EN.get(value, value)
 
 const EN = {
+	"Có nội dung mới": "New content available",
+	"Nội dung mới đã được tải sẵn. Tải lại để áp dụng cập nhật.": "New content has been downloaded. Reload to apply the update.",
+	"Tải lại": "Reload",
+	"Để sau": "Later",
 	"Đang tải…": "Loading…",
 	"Xóa ảnh": "Delete picture",
 	"Xóa ảnh?": "Delete picture?",
