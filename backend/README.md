@@ -216,3 +216,14 @@ API quản trị nhận `slot` là `home`, `game`, hoặc `theme-0` đến `them
 Không cần chạy thêm SQL hoặc mở quyền ghi công khai. Mỗi lần thay ảnh tạo URL mới để tránh cache cũ.
 App tải nền ngầm cùng catalogue, chỉ áp dụng sau khi người dùng chọn **Tải lại** ở Home và dùng được khi offline.
 Cần build lại app để sử dụng tính năng hình nền.
+
+## Preview màn hình Godot Web
+
+Mở `/preview/` hoặc liên kết **Preview màn hình** trên trang quản trị để xem giao diện Godot thật.
+Chọn màn hình, theme, ảnh và ngôn ngữ bằng thanh công cụ. Đây là bản xem trước, không có thao tác chơi hoặc lưu ván.
+Sau khi cập nhật hình nền, chọn **Làm mới nội dung**; các ảnh tải xong được tự động áp dụng vào preview.
+
+Trước khi deploy, từ thư mục gốc repo chạy `python3 tools/export_web.py` để tạo `backend/public/preview/`.
+File export không nằm trong Git; deploy từ checkout mới cần tạo lại chúng.
+`vercel.json` yêu cầu kiểm tra lại cache các file Web để tránh dùng lẫn engine và tài nguyên khác phiên bản.
+`.vercelignore` cho phép upload file export đã tạo và loại trừ file môi trường, dependency local và thư mục kiểm thử.

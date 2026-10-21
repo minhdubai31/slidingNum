@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#211b16">
+  <title>Slide Puzzle · Preview màn hình</title>
+  $GODOT_HEAD_INCLUDE
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #211b16; color: #f4ede1; font: 14px/1.5 system-ui, sans-serif; }
+    header { padding: 12px 20px; background: #30271f; border-bottom: 1px solid #4d3f32; }
+    .toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; max-width: 1200px; margin: auto; }
+    label { display: grid; gap: 4px; }
+    select, button { font: inherit; color: inherit; background: #433629; border: 1px solid #76634d; border-radius: 8px; padding: 8px 10px; min-height: 40px; }
+    select { max-width: 230px; }
+    button { cursor: pointer; }
+    button:disabled, select:disabled { opacity: .5; cursor: wait; }
+    button:focus-visible, select:focus-visible { outline: 3px solid #86bcf0; outline-offset: 2px; }
+    .note { max-width: 1200px; margin: 8px auto 0; color: #cdbca7; }
+    main { display: grid; place-items: center; padding: 16px; }
+    #phone { position: relative; width: min(430px, calc(100vw - 32px)); aspect-ratio: 430 / 900; overflow: hidden; background: #f4ede1; border-radius: 12px; box-shadow: 0 12px 40px #0005; }
+    canvas { display: block; width: 100%; height: 100%; pointer-events: none; outline: none; }
+    #loader { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 28px; text-align: center; background: #f4ede1; color: #493929; }
+    #loader[hidden] { display: none; }
+    h1 { font-size: 27px; margin: 0; }
+    p { margin: 0; }
+    progress { width: 100%; accent-color: #925a2a; }
+    #load-status { overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="toolbar">
+      <label>Màn hình
+        <select id="screen" disabled>
+          <option value="home">Home</option><option value="game">Màn chơi · xếp số</option><option value="photo-game">Màn chơi · xếp ảnh</option>
+
+        </select>
+      </label>
+      <label>Theme
+        <select id="theme" disabled>
+          <option value="0">Gỗ cổ điển</option><option value="1">Gỗ tối</option><option value="2">Gốm sứ</option><option value="3">Đá cẩm thạch</option>
+          <option value="4">Kim loại</option><option value="5">Kính mờ</option><option value="6">Đất sét</option><option value="7">Neon</option>
+        </select>
+      </label>
+      <label>Ảnh <select id="picture" disabled><option value="0">Ảnh mẫu</option></select></label>
+      <label>Ngôn ngữ <select id="language" disabled><option value="vi">Tiếng Việt</option><option value="en">English</option></select></label>
+      <button id="refresh" disabled>Làm mới nội dung</button>
+      <span id="status" role="status" aria-live="polite">Đang mở preview…</span>
+    </div>
+    <p class="note">Preview background Home và màn chơi. Chọn theme để xem nền riêng; không chơi hoặc lưu ván.</p>
+  </header>
+  <main>
+    <div id="phone">
+      <canvas id="canvas" width="430" height="900" tabindex="-1" aria-label="Preview giao diện Slide Puzzle"></canvas>
+      <section id="loader" aria-label="Đang tải preview">
+        <h1>Preview màn hình</h1>
+        <progress id="progress" aria-label="Đang tải giao diện"></progress>
+        <p id="load-status" role="status">Đang tải giao diện… Lần mở đầu tiên có thể mất một chút thời gian.</p>
+        <button id="retry" hidden>Thử lại</button>
+      </section>
+    </div>
+  </main>
+  <script src="$GODOT_URL"></script>
+  <script>
+    const engine = new Engine($GODOT_CONFIG);
+    const fields = ['screen', 'theme', 'picture', 'language'].map(id => document.getElementById(id));
+    const [screenField, themeField, pictureField, languageField] = fields;
+    const refresh = document.getElementById('refresh');
+    const progress = document.getElementById('progress');
+    let ready = false;
+    let pictureLabels = '';
+    const query = new URLSearchParams(location.search);
+    for (const field of [screenField, themeField, languageField]) {
+      if ([...field.options].some(option => option.value === query.get(field.id))) field.value = query.get(field.id);
+    }
+    window.slidePreviewStatus = json => {
+      const state = JSON.parse(json);
+      document.getElementById('status').textContent = state.fetching ? 'Đang tải nội dung…' : 'Preview sẵn sàng';
+      refresh.disabled = !ready || state.fetching;
+      const labels = JSON.stringify(state.pictures);
+      if (labels !== pictureLabels) {
+        pictureLabels = labels;
+        const previous = pictureField.value;
+        pictureField.replaceChildren(...state.pictures.map((label, i) => new Option(label, String(i))));
+        pictureField.value = [...pictureField.options].some(option => option.value === previous) ? previous : '0';
+      }
+    };
+    function selectPreview() {
+      if (!ready || !window.slidePreview) return;
+      window.slidePreview(screenField.value, Number(themeField.value), languageField.value, Number(pictureField.value));
+      const selection = new URLSearchParams({ screen: screenField.value, theme: themeField.value, language: languageField.value });
+      history.replaceState(null, '', '?' + selection);
+    }
+    for (const field of fields) field.addEventListener('change', selectPreview);
+    refresh.addEventListener('click', () => { if (ready) window.slidePreviewRefresh(); });
+    document.getElementById('retry').addEventListener('click', () => location.reload());
+    engine.startGame({
+      canvas: document.getElementById('canvas'),
+      onProgress(current, total) {
+        if (total > 0) { progress.max = total; progress.value = current; }
+        else progress.removeAttribute('value');
+      },
+    }).then(() => {
+      ready = true;
+      document.getElementById('loader').hidden = true;
+      for (const field of fields) field.disabled = false;
+      refresh.disabled = false;
+      selectPreview();
+    }).catch(error => {
+      console.error('Preview startup failed', error);
+      progress.hidden = true;
+      document.getElementById('load-status').textContent = 'Không mở được preview. Kiểm tra kết nối và thử lại bằng trình duyệt hỗ trợ WebGL 2.';
+      document.getElementById('retry').hidden = false;
+    });
+  </script>
+</body>
+</html>

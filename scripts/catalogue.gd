@@ -36,7 +36,10 @@ func check() -> void:
 		return
 	fetching = true
 	phase = "manifest"
-	start_request(API_URL)
+	var url := API_URL
+	if OS.has_feature("web"):
+		url = str(JavaScriptBridge.eval("window.location.origin")) + "/api/topics"
+	start_request(url)
 
 # Makes the staged catalogue the active one. Returns false when nothing is staged.
 func apply_pending() -> bool:

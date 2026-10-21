@@ -39,3 +39,6 @@ tmp/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Generated Godot Web export (published with the backend)
+/backend/public/preview/

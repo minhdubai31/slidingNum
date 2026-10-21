@@ -103,3 +103,38 @@ ANDROID_JAR="$HOME/Android/Sdk/platforms/android-35/android.jar" bash android/pl
 Build thành công sẽ tạo `android/plugins/ImagePicker.aar`. Mở lại Godot và giữ `ImagePicker` bật trong preset Android. Build lại plugin khi sửa Java source.
 
 Dự án dùng Compatibility renderer, hỗ trợ touch và khóa hướng dọc. Chưa đóng gói APK/IPA hoặc đo hiệu năng trên điện thoại thật. Android cần Godot export templates khớp phiên bản, Android SDK và JDK; iOS cần macOS/Xcode. Cần kiểm tra file picker, haptic và vùng an toàn trên thiết bị trước khi phát hành.
+
+## Preview màn hình trên Web
+
+Mở **https://slide-puzzle-backend.vercel.app/preview/** hoặc liên kết **Preview màn hình** trong trang quản trị.
+Bản này dùng giao diện Godot thật, chỉ để xem trước các màn hình và background, không cho chơi hoặc lưu ván.
+Chỉ có Home và màn chơi (xếp số/xếp ảnh), là các màn dùng background ảnh. Thanh công cụ cho phép chọn theme, ảnh mẫu và ngôn ngữ.
+Background theo theme áp dụng cho cả màn chơi xếp số và xếp ảnh; chọn **Làm mới nội dung** để tải cấu hình mới.
+Thay đổi đã tải xong được áp dụng tự động, không cần popup cập nhật. URL lưu màn hình/theme/ngôn ngữ đang chọn để có thể chia sẻ.
+
+Xuất và đưa preview mới lên Vercel:
+
+```bash
+python3 tools/export_web.py
+cd backend
+vercel deploy --prod --yes
+```
+
+Script sử dụng Godot trong `PATH` (hoặc `--godot /path/to/godot`), tự tải Web template chính thức khớp phiên bản nếu thiếu.
+Chỉ phần Web trong archive template được tải về `builds/templates/`; không cần cài template cho các nền tảng khác.
+Dùng `--offline` khi template đã có sẵn. File export đặt tại `backend/public/preview/`, không commit vào Git.
+Sau khi clone repo hoặc sửa mã Godot, cần chạy lại script trước khi deploy backend để có preview tương ứng.
+
+Web dùng scene `web_preview.tscn` và profile chỉ lưu trong bộ nhớ, tách khỏi scene chơi trên Android.
+Cache nội dung có thể lưu trong IndexedDB để lần mở sau nhanh hơn; không đọc/ghi tiến trình chơi.
+Canvas giữ tỷ lệ 430×900, tự co theo bề rộng cửa sổ. Preview cần WebAssembly và WebGL 2, được phục vụ qua HTTP/HTTPS.
+Bản export chạy một luồng nên không yêu cầu header cô lập cross-origin.
+
+Kiểm thử scene preview:
+
+```bash
+XDG_DATA_HOME=/tmp/slide-preview-tests godot --headless --path . --script tests/test_web_preview.gd -- --test-mode
+```
+
+Tài liệu Godot: [Web export](https://docs.godotengine.org/en/stable/tutorials/export/exporting_for_web.html),
+[custom HTML shell](https://docs.godotengine.org/en/stable/tutorials/platform/web/customizing_html5_shell.html).
