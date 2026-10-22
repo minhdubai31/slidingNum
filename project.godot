@@ -14,15 +14,15 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 [application]
 
-config/name="Slide · Little moments of order"
+config/name="Slide Puzzle"
 config/version="0.6.0"
 run/main_scene="res://main.tscn"
-run/main_scene.web="res://web_preview.tscn"
 config/quit_on_go_back=false
 config/features=PackedStringArray("4.7", "GL Compatibility")
 boot_splash/bg_color=Color(0.96, 0.93, 0.87, 1)
 boot_splash/show_image=false
-config/icon="res://assets/third_party/noto/1f9e9.svg"
+config/icon="res://assets/branding/slide-puzzle-icon-adaptive.png"
+run/main_scene.web="res://web_preview.tscn"
 config/clear_color=Color(0.957, 0.949, 0.925, 1)
 
 [display]

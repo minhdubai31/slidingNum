@@ -62,3 +62,15 @@ Các tranh nền, ảnh ghép và hình cúp minh họa lớn từ MVP trước 
 - **Waiting II — Kistol**, CC0: https://opengameart.org/content/waiting-ii ; `audio/waiting-ii.ogg`.
 - Giữ nguyên bản Ogg. Thông tin giấy phép: `licenses/Additional-Music-CC0.txt`.
 - Game tự chuyển giữa ba soundtrack khi hết bài, không phát hai lần liên tiếp cùng một bản; giữ điều khiển âm lượng, giảm nhạc lúc thắng/tạm dừng và tiếp tục khi trở lại ứng dụng.
+
+## Icon ứng dụng — Slide Puzzle
+
+- `branding/slide-puzzle-icon.png`: icon gỗ 1–2–3 và ô trống, tạo riêng bằng công cụ imagegen ngày 22/10/2026.
+- Prompt và bản gốc lưu tại `publishing/google-play/ICON.md` và `publishing/google-play/icon-master.png`.
+- Bản 512×512 để tải lên Google Play: `publishing/google-play/icon-512.png`.
+
+### Bộ icon adaptive / nhiều hình dạng
+
+- `branding/slide-puzzle-icon-adaptive.png` là icon chính mới; các lớp Android gồm `slide-puzzle-adaptive-foreground.png`, `slide-puzzle-adaptive-background.png` và `slide-puzzle-monochrome.png`.
+- Foreground được tách bằng imagegen từ icon gỗ đã tạo; monochrome có source SVG cùng thư mục.
+- Bộ xuất Google Play, Windows, macOS và bản mô phỏng mask: `publishing/icons/`; hướng dẫn và prompt tại `publishing/icons/README.md`.
