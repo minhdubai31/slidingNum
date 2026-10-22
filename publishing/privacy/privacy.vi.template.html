@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Chính sách quyền riêng tư của Slide Puzzle: ảnh cá nhân, dữ liệu chơi trên thiết bị và kết nối tải nội dung.">
+  <title>Chính sách quyền riêng tư · Slide Puzzle</title>
+  <style>
+    :root { color-scheme: light; font: 16px/1.75 system-ui, sans-serif; color: #35291f; background: #f6efe3; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    header, main, footer { width: min(100% - 40px, 820px); margin: auto; }
+    header { padding: 28px 0 18px; border-bottom: 1px solid #dfd2bd; display: flex; gap: 16px; justify-content: space-between; flex-wrap: wrap; }
+    a { color: #245e98; text-underline-offset: 3px; overflow-wrap: anywhere; }
+    main { padding: 28px 0 40px; }
+    h1 { font-size: clamp(28px, 5vw, 40px); line-height: 1.2; margin: 8px 0 16px; }
+    h2 { font-size: 21px; line-height: 1.4; margin: 32px 0 10px; }
+    p, ul { margin: 12px 0; }
+    .meta { color: #746450; font-size: 14px; }
+    .summary { background: #fffaf2; border: 1px solid #dfd2bd; border-radius: 14px; padding: 16px 20px; margin: 24px 0; }
+    footer { border-top: 1px solid #dfd2bd; padding: 20px 0 32px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <header><strong>Slide Puzzle</strong><a href="#contact">Liên hệ về quyền riêng tư</a></header>
+  <main>
+    <p class="meta">Có hiệu lực và cập nhật ngày 22/10/2026</p>
+    <h1>Chính sách quyền riêng tư</h1>
+    <p>Chính sách này mô tả cách <strong>Slide Puzzle</strong>, do <strong>{{PUBLISHER_NAME}}</strong> phát hành, xử lý dữ liệu khi bạn sử dụng trò chơi và các trang web liên quan tại slide-puzzle-backend.vercel.app.</p>
+    <div class="summary"><strong>Thông tin chính</strong><ul>
+      <li>Không cần tài khoản người chơi. Tiến trình, thành tích, cài đặt và ảnh cá nhân được lưu trên thiết bị.</li>
+      <li>Ảnh bạn chọn để xếp ảnh không được ứng dụng gửi lên backend của chúng tôi.</li>
+      <li>Ứng dụng kết nối Internet để tải danh sách ảnh, chủ đề và hình nền. Các nhà cung cấp hạ tầng có thể xử lý thông tin kết nối và nhật ký kỹ thuật.</li>
+      <li>Phiên bản hiện tại không tích hợp quảng cáo, SDK phân tích hành vi hay thanh toán trong ứng dụng.</li>
+    </ul></div>
+    <h2>1. Dữ liệu được lưu trên thiết bị</h2>
+    <p>Ứng dụng lưu ván đang chơi, thời gian và số bước, lịch sử hoàn tác, kỷ lục theo ảnh/cấp độ, thành tích, kết quả thử thách ngày và các lựa chọn như âm thanh, theme, ngôn ngữ. Các dữ liệu này phục vụ việc tiếp tục ván chơi và hiển thị tiến trình; ứng dụng không có chức năng đồng bộ chúng với tài khoản hoặc máy chủ của chúng tôi.</p>
+    <h2>2. Ảnh cá nhân và quyền truy cập ảnh</h2>
+    <p>Khi bạn chủ động thêm ảnh, ứng dụng mở trình chọn ảnh của hệ điều hành và nhận ảnh bạn chọn. Ứng dụng có thể tạo bản sao tạm, cắt ảnh vuông và lưu bản dùng cho puzzle trong vùng lưu trữ của ứng dụng. Ảnh gốc trong thư viện không bị chỉnh sửa hoặc xóa. Ứng dụng không tự quét toàn bộ thư viện ảnh và không tải ảnh cá nhân này lên Vercel hoặc Supabase.</p>
+    <h2>3. Tải nội dung và nhật ký kỹ thuật</h2>
+    <p>Ứng dụng gửi yêu cầu HTTPS đến API trên Vercel để kiểm tra cập nhật và đến Supabase Storage để tải ảnh/hình nền công khai. Khi tiếp nhận yêu cầu, các dịch vụ hạ tầng có thể xử lý địa chỉ IP, thời điểm, đường dẫn yêu cầu, thông tin trình duyệt hoặc kết nối và mã lỗi nhằm phân phối nội dung, bảo mật, chống lạm dụng và chẩn đoán sự cố. Chúng tôi không sử dụng các yêu cầu này để xây dựng hồ sơ quảng cáo.</p>
+    <p>Nội dung tải về được cache trên thiết bị để có thể dùng lại. Việc từ chối hoặc mất kết nối có thể khiến nội dung mới chưa được tải; trò chơi vẫn có các tài nguyên có sẵn hoặc đã tải trước đó.</p>
+    <h2>4. Nhà cung cấp dịch vụ</h2>
+    <ul>
+      <li><strong>Vercel:</strong> lưu trữ website, API và phân phối bản preview. <a href="https://vercel.com/legal/privacy-notice" rel="noopener noreferrer">Chính sách của Vercel</a>.</li>
+      <li><strong>Supabase:</strong> lưu trữ metadata và tài nguyên ảnh công khai do nhà phát hành quản lý. <a href="https://supabase.com/privacy" rel="noopener noreferrer">Chính sách của Supabase</a>.</li>
+    </ul>
+    <p>Hạ tầng của các nhà cung cấp có thể xử lý dữ liệu tại những quốc gia khác nơi bạn cư trú. Quyền truy cập và thời gian lưu nhật ký kỹ thuật phụ thuộc vào cấu hình vận hành, gói dịch vụ và quy định của từng nhà cung cấp. Các liên kết trên cung cấp thông tin về thực hành của họ; chúng không thay thế mô tả về ứng dụng trong chính sách này.</p>
+    <h2>5. Website và preview quản trị</h2>
+    <p>Trang chính sách này không nhúng công cụ phân tích hành vi hay quảng cáo. Preview có thể lưu cache nội dung trong IndexedDB. Trang quản trị dùng sessionStorage để giữ token đăng nhập trong phiên của tab; người chơi không cần token này.</p>
+    <p>Ảnh nháp trong hộp thoại preview quản trị được xử lý trong bộ nhớ trình duyệt trước khi lưu. Chỉ khi quản trị viên bấm Lưu, ảnh mới được gửi lên backend; các ảnh/chủ đề/hình nền được quản trị viên xuất bản là tài nguyên công khai của trò chơi. Đây là luồng quản trị, tách biệt với ảnh cá nhân mà người chơi nhập trên thiết bị.</p>
+    <h2>6. Lưu giữ và xóa dữ liệu</h2>
+    <ul>
+      <li>Bạn có thể xóa từng ảnh đã nhập trong bộ sưu tập Của bạn. Việc này xóa bản ảnh trong bộ sưu tập và các bản ghi liên quan của ứng dụng, không xóa ảnh gốc.</li>
+      <li>Trong Cài đặt, chọn Xóa dữ liệu trò chơi để xóa tiến trình, thống kê và ảnh cá nhân đã nhập. Lựa chọn ngôn ngữ và cache tài nguyên công khai có thể vẫn được giữ.</li>
+      <li>Để xóa cả file tạm và toàn bộ dữ liệu cục bộ trên Android, dùng chức năng Xóa bộ nhớ/dữ liệu của ứng dụng trong cài đặt hệ thống. Với website, xóa dữ liệu trang trong trình duyệt.</li>
+    </ul>
+    <p>Dữ liệu chơi được giữ cục bộ cho đến khi bị xóa. Nhật ký hạ tầng được lưu theo thời hạn của dịch vụ và nhu cầu vận hành, bảo mật hoặc nghĩa vụ áp dụng. Ứng dụng không cung cấp tài khoản người chơi nên không có tài khoản máy chủ cần đóng. Bạn có thể liên hệ chúng tôi nếu có yêu cầu liên quan đến dữ liệu kỹ thuật; chúng tôi không thể truy xuất từ xa ảnh và tiến trình chỉ nằm trên thiết bị của bạn.</p>
+    <h2>7. Bảo mật</h2>
+    <p>Kết nối tải nội dung sử dụng HTTPS. Dữ liệu chơi và ảnh cá nhân nằm trong vùng lưu trữ của ứng dụng. Không phương thức lưu trữ hoặc truyền tải nào bảo đảm an toàn tuyệt đối; hãy chỉ chọn ảnh bạn có quyền sử dụng và bảo vệ quyền truy cập thiết bị.</p>
+    <h2>8. Trẻ em và người giám hộ</h2>
+    <p>Trò chơi không yêu cầu người chơi cung cấp tên, email hay tuổi để chơi. Nếu bạn là phụ huynh hoặc người giám hộ và có thắc mắc về dữ liệu của trẻ liên quan đến ứng dụng hoặc website, hãy liên hệ theo thông tin bên dưới.</p>
+    <h2>9. Thay đổi chính sách</h2>
+    <p>Chúng tôi sẽ cập nhật trang này khi cách xử lý dữ liệu thay đổi và ghi rõ ngày cập nhật. Nếu bổ sung tính năng như tài khoản, quảng cáo hoặc phân tích, chúng tôi sẽ cập nhật thông tin liên quan trước khi áp dụng và thực hiện các bước thông báo hoặc xin phép cần thiết.</p>
+    <h2 id="contact">10. Liên hệ</h2>
+    <p>Nhà phát hành: <strong>{{PUBLISHER_NAME}}</strong><br>Email hỗ trợ và quyền riêng tư: <a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a></p>
+  </main>
+  <footer>Slide Puzzle · Chính sách quyền riêng tư</footer>
+</body>
+</html>

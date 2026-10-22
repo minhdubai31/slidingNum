@@ -16,6 +16,7 @@ static func t(value: String) -> String:
 	return EN.get(value, value)
 
 const EN = {
+	"Chính sách quyền riêng tư": "Privacy Policy",
 	"Có nội dung mới": "New content available",
 	"Nội dung mới đã được tải sẵn. Tải lại để áp dụng cập nhật.": "New content has been downloaded. Reload to apply the update.",
 	"Tải lại": "Reload",

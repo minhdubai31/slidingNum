@@ -230,3 +230,11 @@ Trước khi deploy, từ thư mục gốc repo chạy `python3 tools/export_web
 File export không nằm trong Git; deploy từ checkout mới cần tạo lại chúng.
 `vercel.json` yêu cầu kiểm tra lại cache các file Web để tránh dùng lẫn engine và tài nguyên khác phiên bản.
 `.vercelignore` cho phép upload file export đã tạo và loại trừ file môi trường, dependency local và thư mục kiểm thử.
+
+## Chính sách quyền riêng tư
+
+Trang công khai: https://slide-puzzle-backend.vercel.app/privacy/ (không yêu cầu đăng nhập).
+Nhà phát hành: **MinC**. Email hỗ trợ/quyền riêng tư: **trahoangminh31@gmail.com**.
+Nội dung nằm tại `public/privacy/index.html`; bản mẫu và ghi chú rà soát tại `../publishing/privacy/`.
+Trang chủ và footer trang quản trị có liên kết chính sách. App có liên kết trong Cài đặt; cần build lại app để người dùng thấy mục mới.
+Dùng URL trên trong Play Console. Rà soát lại nội dung và Data safety khi thay đổi SDK, quảng cáo, tài khoản hoặc cách xử lý dữ liệu.

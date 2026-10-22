@@ -1759,6 +1759,7 @@ func settings_screen() -> void:
 	var more := list_panel()
 	list_row(more, SlideArt.icon("globe_white"), "5b5bd6", "Ngôn ngữ", choose_language, SlideI18n.LANGUAGES[profile.settings.language])
 	list_row(more, white("info"), "8e8a83", "Nguồn tài nguyên", show_credits)
+	list_row(more, white("lock"), "2f6fb0", "Chính sách quyền riêng tư", func(): OS.shell_open("https://slide-puzzle-backend.vercel.app/privacy/"))
 	list_row(more, white("trash"), "ff3b30", "Xóa dữ liệu trò chơi", confirm_clear, "", true)
 	gap(4)
 	centered(U.t("SLIDE PUZZLE · Phiên bản %s") % VERSION, 12, Color("b0a28c"), true)
