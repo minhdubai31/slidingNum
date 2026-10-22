@@ -43,7 +43,9 @@ func _draw() -> void:
 			if soft.is_compressed():
 				soft.decompress()
 			soft.clear_mipmaps()
-			soft.resize(40, 40, Image.INTERPOLATE_CUBIC)
+			# Only soften the automatic photo backdrop; configured backgrounds bypass this branch.
+			soft.resize(16, 16, Image.INTERPOLATE_LANCZOS)
+			soft.adjust_bcs(1.0, 0.85, 0.45)
 			soft.resize(512, 512, Image.INTERPOLATE_CUBIC)
 			photo_background = ImageTexture.create_from_image(soft)
 			photo_source = photo.get_instance_id()
